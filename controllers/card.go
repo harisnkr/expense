@@ -12,6 +12,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// TODO: Bind -> ShouldBindJSON for all routes for input validation
+
 // CreateCard creates a card object
 func CreateCard(ctx *gin.Context) {
 	req := dto.CreateCardReq{}

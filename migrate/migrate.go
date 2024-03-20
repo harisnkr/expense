@@ -14,6 +14,7 @@ func init() {
 }
 
 func main() {
+	// TODO: see if we can make this verbose
 	err := data.DB.AutoMigrate(models.Card{})
 	if err != nil {
 		log.Fatal(err, "migration failed")

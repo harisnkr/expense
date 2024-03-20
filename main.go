@@ -14,7 +14,7 @@ func main() {
 	r := gin.Default()
 	r.GET("/health", controllers.Health)
 
-	// TODO: segregate routes. e.g. cards, savings accounts, expenditure, items, etc.
+	// TODO: segregate routes for controllers relating to an entity. e.g. registerCardRoutes()
 	r.POST("/card", controllers.CreateCard)
 	r.GET("/cards", controllers.SearchCards)
 	r.GET("/card/:id", controllers.SearchCard)
