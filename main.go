@@ -14,6 +14,7 @@ func main() {
 	r := gin.Default()
 	r.GET("/health", controllers.Health)
 
+	// TODO: segregate routes. e.g. cards, savings accounts, expenditure, items, etc.
 	r.POST("/card", controllers.CreateCard)
 	r.GET("/cards", controllers.SearchCards)
 	r.GET("/card/:id", controllers.SearchCard)
@@ -29,5 +30,8 @@ func main() {
 func init() {
 	log.SetLevel(log.DebugLevel)
 	config.InitEnvVar()
+	// TODO: dependency injection for database
 	data.InitDatabase()
+
+	// TODO: add redis for fallback and speed
 }

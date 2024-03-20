@@ -2,16 +2,16 @@ package dto
 
 // CreateCardReq ...
 type CreateCardReq struct {
-	IssuerBank     string
-	Name           string
-	Network        string
-	MilesPerDollar int
+	IssuerBank     string `json:"issuerBank"`
+	Name           string `json:"name"`
+	Network        string `json:"network"`
+	MilesPerDollar int    `json:"milesPerDollar"`
 }
 
 // UpdateCardReq ...
 type UpdateCardReq struct {
-	IssuerBank     string
-	Name           string
-	Network        string
-	MilesPerDollar int
+	IssuerBank     string `json:"issuerBank"`
+	Name           string `json:"name"`
+	Network        string `json:"network"`
+	MilesPerDollar int    `json:"milesPerDollar"`
 }

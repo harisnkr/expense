@@ -8,10 +8,10 @@ import (
 	"gorm.io/gorm"
 )
 
-// DB ...
+// DB ... TODO: dependency injection in main.go for routes
 var DB *gorm.DB
 
-// InitDatabase initalises the Postgres database
+// InitDatabase initalises the Postgres database. TODO: change to MySQL
 func InitDatabase() {
 	dsn := os.Getenv("DSN")
 
