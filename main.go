@@ -16,6 +16,7 @@ var cardsAPI cards.API
 func main() {
 	r := gin.Default()
 
+	// TODO: add app config
 	db := data.InitDatabase()
 
 	// implementations
