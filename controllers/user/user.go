@@ -76,6 +76,7 @@ func (u *Impl) RegisterUser(c *gin.Context) {
 	// Insert the new user into the database
 	if _, err = collection.InsertOne(c, user); err != nil {
 		log.Fatal(err)
+		// TODO: create generic handlers for errors
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Unknown error"})
 	}
 

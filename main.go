@@ -4,8 +4,6 @@ import (
 	"context"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
-	"github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/harisnkr/expense/common"
@@ -63,9 +61,5 @@ func registerCardsRoutes(r *gin.Engine, cardAPI card.API) {
 func init() {
 	log.SetLevel(log.DebugLevel)
 	config.InitEnvVar()
-	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		_ = v.RegisterValidation(common.Password, common.ValidatePassword)
-		_ = v.RegisterValidation(common.Username, common.ValidateUsername)
-		_ = v.RegisterValidation(common.Email, common.ValidateEmail)
-	}
+	common.InitValidators()
 }
