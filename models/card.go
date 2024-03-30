@@ -1,20 +1,16 @@
 package models
 
-import "gorm.io/gorm"
-
 type Card struct {
-	gorm.Model
-	IssuerBank     string  // Citibank
-	Name           string  // Rewards, Preferred Platinum
-	Network        string  // MasterCard World, Visa Platinum, Visa Signature
-	MilesPerDollar float32 // 1.2, 4
-
+	Name       string `json:"name"`
+	IssuerBank string `json:"issuer_bank,omitempty"`
+	Network    string `json:"network"`
+	Miles      Miles  `json:"miles" json:"miles"`
 }
 
 type Miles struct {
-	Multiplier      float32 // 2x, 1.4x, 4x
-	MinimumSpend    float32
-	SpendCategories []SpendCategory
+	Multiplier      float32         `json:"multiplier"` // 2x, 1.4x, 4x json
+	MinimumSpend    float32         `json:"minimumSpend"`
+	SpendCategories []SpendCategory `json:"spendCategories" bson:"spendCategories"`
 }
 
 type SpendCategory int64

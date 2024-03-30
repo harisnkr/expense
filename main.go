@@ -1,30 +1,40 @@
 package main
 
 import (
+	"context"
+
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/harisnkr/expense/common"
 	"github.com/harisnkr/expense/common/logkeys"
 	"github.com/harisnkr/expense/config"
 	"github.com/harisnkr/expense/controllers"
-	"github.com/harisnkr/expense/controllers/cards"
+	"github.com/harisnkr/expense/controllers/card"
+	"github.com/harisnkr/expense/controllers/user"
 	"github.com/harisnkr/expense/data"
 )
 
-var cardsAPI cards.API
+var (
+	cardAPI card.API
+	userAPI user.API
+)
 
 func main() {
 	r := gin.Default()
 
 	// TODO: add app config
-	db := data.InitDatabase()
+	client, collections := data.InitDatabase(context.Background())
 
-	// implementations
-	cardsAPI = cards.New(db)
+	cardAPI = card.New(client, collections)
+	userAPI = user.New(client, collections)
 
 	// routes
 	r.GET("/health", controllers.Health)
-	registerCardsRoutes(r, cardsAPI)
+	registerCardsRoutes(r, cardAPI)
+	registerUsersRoutes(r, userAPI)
 
 	if err := r.Run(); err != nil {
 		log.Error(logkeys.Error, err, "Failed to start server")
@@ -32,17 +42,30 @@ func main() {
 	}
 }
 
-func registerCardsRoutes(r *gin.Engine, cardsAPI cards.API) {
-	r.POST("/card", cardsAPI.CreateCard)
-	r.GET("/cards", cardsAPI.SearchCards)
-	r.GET("/card/:id", cardsAPI.SearchCard)
-	r.PUT("/card/:id", cardsAPI.UpdateCard)
-	r.DELETE("/card/:id", cardsAPI.DeleteCard)
+func registerUsersRoutes(r *gin.Engine, userAPI user.API) {
+	r.POST("/user/register", userAPI.RegisterUser)
+	r.POST("/user/email/verify", userAPI.VerifyEmail)
+	r.POST("/user/login", userAPI.LoginUser)
+	r.PATCH("/user", userAPI.UpdateUser)
+}
+
+func registerCardsRoutes(r *gin.Engine, cardAPI card.API) {
+	// TODO: use adminGroup := router.Group("/admin")
+	r.POST("/admin/card", cardAPI.CreateCard)
+	r.PUT("/admin/card/:id", cardAPI.UpdateCard)
+	r.DELETE("/admin/card/:id", cardAPI.DeleteCard)
+
+	// user facing
+	r.GET("/cards", cardAPI.SearchCards)
+	r.GET("/card/:id", cardAPI.SearchCard)
 }
 
 func init() {
 	log.SetLevel(log.DebugLevel)
 	config.InitEnvVar()
-
-	// TODO: add redis for fallback and speed
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		_ = v.RegisterValidation(common.Password, common.ValidatePassword)
+		_ = v.RegisterValidation(common.Username, common.ValidateUsername)
+		_ = v.RegisterValidation(common.Email, common.ValidateEmail)
+	}
 }

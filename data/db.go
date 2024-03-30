@@ -1,20 +1,47 @@
 package data
 
 import (
+	"context"
 	"log"
 	"os"
 
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// InitDatabase initalises the Postgres database. TODO: change to MySQL
-func InitDatabase() *gorm.DB {
-	dsn := os.Getenv("DSN")
+const (
+	databaseName = "expense"
 
-	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	cardsCollection = "cards"
+	usersCollection = "users"
+)
+
+// Collections ...
+type Collections struct {
+	Cards *mongo.Collection
+	Users *mongo.Collection
+}
+
+// InitDatabase inits MongoDB and its collections
+func InitDatabase(ctx context.Context) (*mongo.Client, *Collections) {
+	dsn := os.Getenv("DSN")
+	clientOptions := options.Client().ApplyURI(dsn)
+
+	// Connect to MongoDB
+	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
-		log.Fatal("failed to connect to database")
+		log.Fatal(err)
 	}
-	return database
+
+	// Check the connection
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Connected to MongoDB!")
+
+	return client, &Collections{
+		Cards: client.Database(databaseName).Collection(cardsCollection),
+		Users: client.Database(databaseName).Collection(usersCollection),
+	}
 }
