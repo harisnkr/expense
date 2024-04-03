@@ -1,7 +1,8 @@
 package common
 
 const (
-	Password = "password"
+	Name     = "name"
 	Username = "username"
+	Password = "password"
 	Email    = "email"
 )

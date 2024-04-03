@@ -11,8 +11,9 @@ import (
 // InitValidators ...
 func InitValidators() {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		_ = v.RegisterValidation(Password, validatePassword)
+		_ = v.RegisterValidation(Name, validateName)
 		_ = v.RegisterValidation(Username, validateUsername)
+		_ = v.RegisterValidation(Password, validatePassword)
 		_ = v.RegisterValidation(Email, validateEmail)
 	}
 }
@@ -29,18 +30,18 @@ func validatePassword(fl validator.FieldLevel) bool {
 
 func validateUsername(fl validator.FieldLevel) bool {
 	username := fl.Field().String()
-
-	// Define your regex pattern for username validation
 	regex := regexp.MustCompile(`^[a-zA-Z0-9_-]{4,16}$`)
 	// TOOD: blacklist words
 	return regex.MatchString(username)
 }
 
-// validateEmail ...
 func validateEmail(fl validator.FieldLevel) bool {
 	email := fl.Field().String()
-
-	// Define your regex pattern for email validation
 	_, err := mail.ParseAddress(email)
 	return err == nil
+}
+
+func validateName(fl validator.FieldLevel) bool {
+	name := fl.Field().String()
+	return !(len(name) > 20)
 }

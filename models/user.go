@@ -17,4 +17,9 @@ type User struct {
 	Verified           bool      `json:"verified"`
 	VerificationCode   string    `json:"verification_code" bson:"verification_code"`
 	VerificationSentAt time.Time `json:"verification_sent_at" bson:"verification_sent_at"`
+
+	Cards        []Card        `bson:"cards" json:"cards"`
+	Budgets      []Budget      `json:"budgets,omitempty" bson:"budgets"`
+	Transactions []Transaction `json:"transactions,omitempty" bson:"transactions"`
+	Savings      []Savings     `json:"savings" bson:"savings"`
 }

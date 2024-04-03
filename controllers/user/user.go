@@ -1,20 +1,20 @@
 package user
 
 import (
-	"fmt"
-	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
-	"math/rand"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/crypto/bcrypt"
 
+	"github.com/harisnkr/expense/common"
 	"github.com/harisnkr/expense/data"
+	"github.com/harisnkr/expense/dto"
 	"github.com/harisnkr/expense/models"
 )
 
@@ -40,49 +40,48 @@ func New(database *mongo.Client, collections *data.Collections) *Impl {
 func (u *Impl) RegisterUser(c *gin.Context) {
 	var (
 		collection = u.collections.Users
-		user       models.User
+		req        *dto.RegisterUserRequest
 	)
-	if err := c.ShouldBindJSON(&user); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// Check if the username or email already exists
 	var existingUser models.User
-	err := collection.FindOne(c, bson.M{"$or": []bson.M{{"username": user.Username}, {"email": user.Email}}}).Decode(&existingUser)
+	err := collection.FindOne(c, bson.M{"email": req.Email}).Decode(&existingUser)
 	if err == nil {
-		if strings.EqualFold(existingUser.Username, user.Username) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Username already exists"})
-		} else {
+		if strings.EqualFold(existingUser.Email, req.Email) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Email already exists"})
 		}
 		return
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	// if not proceed on to create newUser
+	var newUser models.User
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
 		return
 	}
-	user.Password = string(hashedPassword)
-	otp := generateToken()
+	newUser.Password = string(hashedPassword)
+	otp := common.GenerateToken()
 
-	user.VerificationCode = otp
-	user.VerificationSentAt = time.Now()
-	user.UpdatedAt = time.Now()
-	user.CreatedAt = time.Now()
-	user.ID = uuid.New().String()
+	newUser.VerificationCode = otp
+	newUser.VerificationSentAt = time.Now()
+	newUser.UpdatedAt = time.Now()
+	newUser.CreatedAt = time.Now()
+	newUser.ID = uuid.New().String()
 
-	// Insert the new user into the database
-	if _, err = collection.InsertOne(c, user); err != nil {
+	// Insert the new req into the database
+	if _, err = collection.InsertOne(c, req); err != nil {
 		log.Fatal(err)
 		// TODO: create generic handlers for errors
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Unknown error"})
 	}
 
 	// Send email with verification link
-	go sendVerificationEmail(user.Email, otp)
-
+	go sendVerificationEmail(req.Email, otp)
 	c.JSON(http.StatusCreated, gin.H{"message": "User registered successfully. Check email for verification."})
 }
 
@@ -112,18 +111,9 @@ func (u *Impl) VerifyEmail(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Email verified successfully"})
 }
 
-// generateToken generates a random verification token
-func generateToken() string {
-	// Generate a random 8-digit number
-	otp := rand.Intn(100000000)
-
-	// Ensure the OTP is exactly 8 digits long
-	return fmt.Sprintf("%08d", otp)
-}
-
 // sendVerificationEmail sends an email with the verification link
 func sendVerificationEmail(email, token string) {
-	// Implement your email sending logic here
+	// TODO: Implement email sending logic here
 	log.Debugf("Sending verification email to %s with OTP: %s", email, token)
 }
 
