@@ -49,13 +49,14 @@ func registerUsersRoutes(r *gin.Engine, userAPI user.API) {
 
 func registerCardsRoutes(r *gin.Engine, cardAPI card.API) {
 	// TODO: use adminGroup := router.Group("/admin")
-	r.POST("/admin/card", cardAPI.CreateCard)
-	r.PUT("/admin/card/:id", cardAPI.UpdateCard)
-	r.DELETE("/admin/card/:id", cardAPI.DeleteCard)
+	r.POST("/admin/card", cardAPI.AdminCreateCard)
+	r.PUT("/admin/card/:id", cardAPI.AdminUpdateCard)
+	r.DELETE("/admin/card/:id", cardAPI.AdminDeleteCard)
 
 	// user facing
 	r.GET("/cards", cardAPI.SearchCards)
 	r.GET("/card/:id", cardAPI.SearchCard)
+	r.POST("/user/card/", cardAPI.AddCardToUser)
 }
 
 func init() {

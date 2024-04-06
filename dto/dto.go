@@ -1,9 +1,19 @@
 package dto
 
-// RegisterUserRequest is the request body for /user/register
+// RegisterUserRequest is the request body for /user/register.
 type RegisterUserRequest struct {
-	FirstName string `json:"firstName,omitempty" binding:"required,name"`
-	LastName  string `json:"lastName,omitempty" binding:"required,name"`
-	Email     string `json:"email" binding:"required,email"`
-	Password  string `json:"password" binding:"required,min=8,max=20,password"`
+	FirstName string `binding:"required,name"     json:"firstName"`
+	LastName  string `binding:"required,name"     json:"lastName"`
+	Email     string `binding:"required,email"    json:"email"`
+	Password  string `binding:"required,password" json:"password"`
+}
+
+// AdminCreateCardRequest is the request body for POST /admin/card.
+type AdminCreateCardRequest struct {
+	Name         string  `json:"name"`
+	IssuerBank   string  `json:"issuerBank"`
+	Network      string  `json:"network"`
+	Multiplier   float32 `json:"multiplier"`
+	MinimumSpend float32 `json:"minimumSpend"`
+	SpendLimit   []int   `json:"spendLimit"`
 }

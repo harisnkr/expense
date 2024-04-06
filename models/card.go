@@ -1,19 +1,19 @@
 package models
 
 type Card struct {
-	Name       string `json:"name"`
-	IssuerBank string `json:"issuer_bank,omitempty"`
-	Network    string `json:"network"`
-	Miles      Miles  `json:"miles" json:"miles"`
+	Name       string `bson:"name"`
+	IssuerBank string `bson:"issuer_bank,omitempty"`
+	Network    string `bson:"network"`
+	Miles      Miles  `bson:"miles"`
 }
 
 type Miles struct {
-	Multiplier      float32         `json:"multiplier"` // 2x, 1.4x, 4x json
-	MinimumSpend    float32         `json:"minimumSpend"`
-	SpendCategories []SpendCategory `json:"spendCategories" bson:"spendCategories"`
+	Multiplier      float32         `bson:"multiplier"` // 2x, 1.4x, 4x json
+	MinimumSpend    float32         `bson:"minimum_spend"`
+	SpendCategories []SpendCategory `bson:"spend_categories"`
 }
 
-type SpendCategory int64
+type SpendCategory int
 
 const (
 	Dining SpendCategory = iota
@@ -49,5 +49,6 @@ func (s SpendCategory) String() string {
 	case Online:
 		return "Online"
 	}
+
 	return "Unknown"
 }

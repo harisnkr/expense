@@ -13,11 +13,12 @@ import (
 
 // API is an interface for operations related to models.Card
 type API interface {
-	CreateCard(ctx *gin.Context)
-	DeleteCard(ctx *gin.Context)
+	AdminCreateCard(ctx *gin.Context)
+	AdminDeleteCard(ctx *gin.Context)
 	SearchCard(ctx *gin.Context)
 	SearchCards(ctx *gin.Context)
-	UpdateCard(ctx *gin.Context)
+	AdminUpdateCard(ctx *gin.Context)
+	AddCardToUser(ctx *gin.Context)
 }
 
 type Impl struct {
@@ -29,8 +30,8 @@ func New(database *mongo.Client, collections *data.Collections) *Impl {
 	return &Impl{database, collections}
 }
 
-// CreateCard creates a card object
-func (a *Impl) CreateCard(c *gin.Context) {
+// AdminCreateCard creates a card object
+func (a *Impl) AdminCreateCard(c *gin.Context) {
 	var card models.Card
 	if err := c.ShouldBindJSON(&card); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -45,12 +46,14 @@ func (a *Impl) CreateCard(c *gin.Context) {
 	c.JSON(http.StatusCreated, result)
 }
 
-func (a *Impl) DeleteCard(c *gin.Context) {
+// AdminDeleteCard deletes a card object
+func (a *Impl) AdminDeleteCard(c *gin.Context) {
 	//var card models.Cards
 	//a.database.Delete(&card, c.Param("id"))
 	c.Status(http.StatusOK)
 }
 
+// SearchCard search for one card available TODO: make this search by `Name` from models.Card
 func (a *Impl) SearchCard(c *gin.Context) {
 	//var card models.Cards
 	//a.database.First(&card, c.Param("id"))
@@ -60,6 +63,7 @@ func (a *Impl) SearchCard(c *gin.Context) {
 	//})
 }
 
+// SearchCards searches for all cards available
 func (a *Impl) SearchCards(c *gin.Context) {
 	var (
 		cards []models.Card
@@ -71,7 +75,7 @@ func (a *Impl) SearchCards(c *gin.Context) {
 	})
 }
 
-func (a *Impl) UpdateCard(c *gin.Context) {
+func (a *Impl) AdminUpdateCard(c *gin.Context) {
 	// parse request body and path parameter
 	//var req dto.UpdateCardReq
 	//c.Bind(&req)
@@ -93,4 +97,9 @@ func (a *Impl) UpdateCard(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"updated_card": card,
 	})
+}
+
+func (a *Impl) AddCardToUser(ctx *gin.Context) {
+	//TODO implement me
+	panic("implement me")
 }
