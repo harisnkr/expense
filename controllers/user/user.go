@@ -14,6 +14,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/harisnkr/expense/common"
+	"github.com/harisnkr/expense/config"
 	"github.com/harisnkr/expense/data"
 	"github.com/harisnkr/expense/dto"
 	"github.com/harisnkr/expense/models"
@@ -23,7 +24,6 @@ import (
 type API interface {
 	RegisterUser(ctx *gin.Context)
 	VerifyEmail(ctx *gin.Context)
-	LoginUser(ctx *gin.Context)
 	UpdateMe(ctx *gin.Context)
 	DeleteUser(ctx *gin.Context)
 }
@@ -59,23 +59,16 @@ func (u *Impl) RegisterUser(c *gin.Context) {
 	}
 
 	// if not proceed on to create newUser
-	var newUser models.User
+	newUser := &models.User{}
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
 		return
 	}
-	newUser.Password = string(hashedPassword)
-	otp := common.GenerateToken()
-
-	newUser.VerificationCode = otp
-	newUser.VerificationSentAt = time.Now()
-	newUser.UpdatedAt = time.Now()
-	newUser.CreatedAt = time.Now()
-	newUser.ID = uuid.New().String()
+	otp := populateUserEntry(newUser, req, hashedPassword)
 
 	// Insert the new req into the database
-	if _, err = collection.InsertOne(c, req); err != nil {
+	if _, err = collection.InsertOne(c, newUser); err != nil {
 		log.Fatal(err)
 		// TODO: create generic handlers for errors
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Unknown error"})
@@ -83,20 +76,24 @@ func (u *Impl) RegisterUser(c *gin.Context) {
 
 	// Send email with verification link
 	go sendVerificationEmail(req.Email, otp)
-	c.JSON(http.StatusCreated, gin.H{"message": "User registered successfully. Check email for verification."})
+	c.JSON(http.StatusCreated, gin.H{"message": "Check email for verification code."})
 }
 
 // VerifyEmail verifies the email with the verification token
 func (u *Impl) VerifyEmail(c *gin.Context) {
 	var (
-		email      = c.Query("email")
-		token      = c.Query("token")
 		collection = u.collections.Users
 	)
 
-	// Fetch the user by email and verification token
+	var req *dto.UserEmailVerifyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Fetch the user by email and verificationCode
 	var user models.User
-	err := u.collections.Users.FindOne(c, bson.M{"email": email, "verification_code": token}).Decode(&user)
+	err := u.collections.Users.FindOne(c, bson.M{"email": req.Email, "verification_code": req.VerificationCode}).Decode(&user)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid verification code"})
 		return
@@ -104,39 +101,42 @@ func (u *Impl) VerifyEmail(c *gin.Context) {
 
 	// Mark the user as verified
 	update := bson.M{"$set": bson.M{"verified": true}}
-	if _, err = collection.UpdateOne(c, bson.M{"email": email}, update); err != nil {
+	if _, err = collection.UpdateOne(c, bson.M{"email": user.Email}, update); err != nil {
 		log.Fatal(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Unknown error"})
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Email verified successfully"})
+	tokenDuration, tokenString := generateSessionJWT(c, user, err)
+	c.JSON(http.StatusOK, dto.UserLoginResponse{
+		SessionToken: tokenString,
+		ExpiresIn:    tokenDuration.String(),
+	})
 }
 
-func (u *Impl) LoginUser(c *gin.Context) {
-	var secretKey = []byte("secret-key")
-	var (
-		//collection = u.collections.Users
-		req *dto.UserLoginRequest
-	)
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// TODO: validate email, password, verification status
-
+func generateSessionJWT(c *gin.Context, user models.User, err error) (time.Duration, string) {
 	tokenDuration := time.Hour * 24
-	expClaim := time.Now().Add(tokenDuration).Unix()
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"email": req.Email, "exp": expClaim})
+	exp := time.Now().Add(tokenDuration).Unix()
+	iat := time.Now().Unix()
+	nbf := time.Now().Unix()
+	iss := "http://www.moneyfly.io"
+	sub := user.ID
+	aud := user.ID
 
-	tokenString, err := token.SignedString(secretKey)
+	token := jwt.NewWithClaims(jwt.SigningMethodES256, jwt.MapClaims{
+		"email": user.Email,
+		"exp":   exp,
+		"iat":   iat,
+		"iss":   iss,
+		"nbf":   nbf,
+		"sub":   sub,
+		"aud":   aud,
+	})
+	tokenString, err := token.SignedString(config.ECDSAKey)
 	if err != nil {
-		c.JSON(http.StatusOK, dto.UserLoginResponse{
-			SessionToken: tokenString,
-			ExpiresIn:    tokenDuration.String(),
-		})
+		log.Fatal("failed to generate jwt", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Unknown error"})
 	}
-
+	return tokenDuration, tokenString
 }
 
 // sendVerificationEmail sends an email with the verification link
@@ -145,12 +145,25 @@ func sendVerificationEmail(email, token string) {
 	log.Debugf("Sending verification email to %s with OTP: %s", email, token)
 }
 
-func (u *Impl) UpdateMe(ctx *gin.Context) {
+func (u *Impl) UpdateMe(c *gin.Context) {
+	c.JSON(http.StatusAccepted, gin.H{"message": "User successfully authenticated!"})
+}
+
+func (u *Impl) DeleteUser(c *gin.Context) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (u *Impl) DeleteUser(ctx *gin.Context) {
-	//TODO implement me
-	panic("implement me")
+func populateUserEntry(newUser *models.User, req *dto.RegisterUserRequest, hashedPassword []byte) string {
+	newUser.ID = uuid.New().String()
+	newUser.Email = req.Email
+	newUser.FirstName = req.FirstName
+	newUser.LastName = req.LastName
+	newUser.Password = string(hashedPassword)
+	otp := common.GenerateOTP()
+	newUser.VerificationCode = otp
+	newUser.VerificationSentAt = time.Now()
+	newUser.UpdatedAt = time.Now()
+	newUser.CreatedAt = time.Now()
+	return otp
 }

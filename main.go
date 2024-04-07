@@ -2,13 +2,13 @@ package main
 
 import (
 	"context"
+	"github.com/harisnkr/expense/middleware"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/harisnkr/expense/common"
 	"github.com/harisnkr/expense/common/logkeys"
-	"github.com/harisnkr/expense/config"
 	"github.com/harisnkr/expense/controllers"
 	"github.com/harisnkr/expense/controllers/card"
 	"github.com/harisnkr/expense/controllers/user"
@@ -44,10 +44,8 @@ func registerUsersRoutes(r *gin.Engine, userAPI user.API) {
 	// onboarding
 	r.POST("/user/register", userAPI.RegisterUser)
 	r.POST("/user/email/verify", userAPI.VerifyEmail)
-	// login
-	r.POST("/user/login", userAPI.LoginUser)
 	// profile related
-	r.PATCH("/me", userAPI.UpdateMe)
+	r.PATCH("/me", middleware.VerifySessionToken(), userAPI.UpdateMe)
 }
 
 func registerCardsRoutes(r *gin.Engine, cardAPI card.API) {
@@ -63,7 +61,5 @@ func registerCardsRoutes(r *gin.Engine, cardAPI card.API) {
 }
 
 func init() {
-	log.SetLevel(log.DebugLevel)
-	config.InitEnvVar()
-	common.InitValidators()
+	common.SetDependencies()
 }

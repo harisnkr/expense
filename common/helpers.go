@@ -5,8 +5,8 @@ import (
 	"math/rand"
 )
 
-// GenerateToken generates a random verification token
-func GenerateToken() string {
+// GenerateOTP generates a random verification token
+func GenerateOTP() string {
 	// Generate a random 8-digit number
 	otp := rand.Intn(100000000)
 

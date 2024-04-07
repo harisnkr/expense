@@ -8,8 +8,7 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-// InitValidators ...
-func InitValidators() {
+func initValidators() {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		_ = v.RegisterValidation(Name, validateName)
 		_ = v.RegisterValidation(Username, validateUsername)
