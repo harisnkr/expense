@@ -76,7 +76,7 @@ func (u *Impl) RegisterUser(c *gin.Context) {
 
 	// Send email with verification link
 	go sendVerificationEmail(req.Email, otp)
-	c.JSON(http.StatusCreated, gin.H{"message": "Check email for verification code."})
+	c.JSON(http.StatusCreated, gin.H{"message": "Check email for verification code.", "otp": otp})
 }
 
 // VerifyEmail verifies the email with the verification token
