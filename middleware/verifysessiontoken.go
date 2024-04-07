@@ -16,8 +16,8 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-// VerifySessionToken is a middleware to verify session tokens issued
-func VerifySessionToken() gin.HandlerFunc {
+// Auth is a middleware to verify session tokens issued
+func Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString := c.GetHeader("Authorization")
 		if tokenString == "" {

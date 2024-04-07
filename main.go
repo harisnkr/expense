@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"github.com/harisnkr/expense/middleware"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -13,6 +12,7 @@ import (
 	"github.com/harisnkr/expense/controllers/card"
 	"github.com/harisnkr/expense/controllers/user"
 	"github.com/harisnkr/expense/data"
+	"github.com/harisnkr/expense/middleware"
 )
 
 var (
@@ -23,7 +23,7 @@ var (
 func main() {
 	r := gin.Default()
 
-	// TODO: add app config
+	// TODO: add app config?
 	client, collections := data.InitDatabase(context.Background())
 
 	cardAPI = card.New(client, collections)
@@ -45,7 +45,7 @@ func registerUsersRoutes(r *gin.Engine, userAPI user.API) {
 	r.POST("/user/register", userAPI.RegisterUser)
 	r.POST("/user/email/verify", userAPI.VerifyEmail)
 	// profile related
-	r.PATCH("/me", middleware.VerifySessionToken(), userAPI.UpdateMe)
+	r.PATCH("/me", middleware.Auth(), userAPI.UpdateMe)
 }
 
 func registerCardsRoutes(r *gin.Engine, cardAPI card.API) {

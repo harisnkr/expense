@@ -118,7 +118,7 @@ func generateSessionJWT(c *gin.Context, user models.User, err error) (time.Durat
 	exp := time.Now().Add(tokenDuration).Unix()
 	iat := time.Now().Unix()
 	nbf := time.Now().Unix()
-	iss := "http://www.moneyfly.io"
+	iss := common.Issuer
 	sub := user.ID
 	aud := user.ID
 

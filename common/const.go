@@ -5,4 +5,6 @@ const (
 	Username = "username"
 	Password = "password"
 	Email    = "email"
+
+	Issuer = "www.moneyfly.io"
 )
