@@ -17,3 +17,14 @@ type AdminCreateCardRequest struct {
 	MinimumSpend float32 `json:"minimumSpend"`
 	SpendLimit   []int   `json:"spendLimit"`
 }
+
+// UserLoginRequest is the request body for POST /user/login
+type UserLoginRequest struct {
+	Email    string `binding:"required,email"    json:"email"`
+	Password string `binding:"required,password" json:"password"`
+}
+
+type UserLoginResponse struct {
+	SessionToken string `json:"sessionToken"`
+	ExpiresIn    string `json:"expiresIn"`
+}

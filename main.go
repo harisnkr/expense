@@ -41,10 +41,13 @@ func main() {
 }
 
 func registerUsersRoutes(r *gin.Engine, userAPI user.API) {
+	// onboarding
 	r.POST("/user/register", userAPI.RegisterUser)
 	r.POST("/user/email/verify", userAPI.VerifyEmail)
+	// login
 	r.POST("/user/login", userAPI.LoginUser)
-	r.PATCH("/user", userAPI.UpdateUser)
+	// profile related
+	r.PATCH("/me", userAPI.UpdateMe)
 }
 
 func registerCardsRoutes(r *gin.Engine, cardAPI card.API) {

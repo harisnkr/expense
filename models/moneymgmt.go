@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+// Budget represents a budget that user can have
 type Budget struct {
 	ID        primitive.ObjectID `bson:"_id,omitempty"`
 	UserID    primitive.ObjectID `bson:"user_id"`
@@ -17,6 +18,7 @@ type Budget struct {
 	UpdatedAt time.Time          `bson:"updated_at"`
 }
 
+// Transaction represents a single transaction
 type Transaction struct {
 	ID          primitive.ObjectID `bson:"_id,omitempty"`
 	UserID      primitive.ObjectID `bson:"user_id"`
@@ -29,6 +31,7 @@ type Transaction struct {
 	UpdatedAt   time.Time          `bson:"updated_at"`
 }
 
+// Savings represents a savings pocket that a user can have
 type Savings struct {
 	ID            primitive.ObjectID `bson:"_id,omitempty"`
 	UserID        primitive.ObjectID `bson:"user_id"`

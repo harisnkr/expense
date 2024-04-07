@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
@@ -21,10 +22,10 @@ import (
 // API is an interface for operations related to models.User
 type API interface {
 	RegisterUser(ctx *gin.Context)
-	DeleteUser(ctx *gin.Context)
-	UpdateUser(ctx *gin.Context)
 	VerifyEmail(ctx *gin.Context)
 	LoginUser(ctx *gin.Context)
+	UpdateMe(ctx *gin.Context)
+	DeleteUser(ctx *gin.Context)
 }
 
 type Impl struct {
@@ -111,23 +112,45 @@ func (u *Impl) VerifyEmail(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Email verified successfully"})
 }
 
+func (u *Impl) LoginUser(c *gin.Context) {
+	var secretKey = []byte("secret-key")
+	var (
+		//collection = u.collections.Users
+		req *dto.UserLoginRequest
+	)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// TODO: validate email, password, verification status
+
+	tokenDuration := time.Hour * 24
+	expClaim := time.Now().Add(tokenDuration).Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"email": req.Email, "exp": expClaim})
+
+	tokenString, err := token.SignedString(secretKey)
+	if err != nil {
+		c.JSON(http.StatusOK, dto.UserLoginResponse{
+			SessionToken: tokenString,
+			ExpiresIn:    tokenDuration.String(),
+		})
+	}
+
+}
+
 // sendVerificationEmail sends an email with the verification link
 func sendVerificationEmail(email, token string) {
 	// TODO: Implement email sending logic here
 	log.Debugf("Sending verification email to %s with OTP: %s", email, token)
 }
 
-func (u *Impl) UpdateUser(ctx *gin.Context) {
+func (u *Impl) UpdateMe(ctx *gin.Context) {
 	//TODO implement me
 	panic("implement me")
 }
 
 func (u *Impl) DeleteUser(ctx *gin.Context) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (u *Impl) LoginUser(ctx *gin.Context) {
 	//TODO implement me
 	panic("implement me")
 }
