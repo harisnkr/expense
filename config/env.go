@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/base64"
-	"encoding/pem"
 	"errors"
 	"os"
 
@@ -28,7 +27,7 @@ func LoadECDSAKey() {
 	keyFromEnv := os.Getenv("ECDSA_PRIVATE_KEY")
 	if keyFromEnv != "" {
 		if err := setECDSAKeyFromEnv(keyFromEnv); err != nil {
-			log.Fatal(err, "error loading ECDSA key from .env file")
+			log.Fatal("error loading ECDSA key from .env file: ", err)
 		}
 		return
 	}
@@ -36,22 +35,13 @@ func LoadECDSAKey() {
 
 }
 
-// TODO: fix this func
 func setECDSAKeyFromEnv(keyFromEnv string) error {
-	// Decode base64 string to byte slice
 	keyBytes, err := base64.URLEncoding.DecodeString(keyFromEnv)
 	if err != nil {
 		log.Fatal("error decoding base64 string", err)
 	}
 
-	// Parse PEM block
-	block, _ := pem.Decode(keyBytes)
-	if block == nil {
-		return errors.New("error decoding PEM block containing the key")
-	}
-
-	// Parse ECDSA private key
-	privateKey, err := x509.ParseECPrivateKey(block.Bytes)
+	privateKey, err := x509.ParseECPrivateKey(keyBytes)
 	if err != nil {
 		return errors.New("error parsing ECDSA private key")
 	}
