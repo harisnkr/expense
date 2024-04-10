@@ -26,7 +26,7 @@ func main() {
 		Get(baseURL + "/health")
 	printTest(resp, err)
 
-	// enter email and get OTP
+	// details for user's registration
 	resp, err = client.R().EnableTrace().
 		SetBody(fmt.Sprintf(`{
 			"username": "%s_username",
@@ -41,7 +41,7 @@ func main() {
 	// internal endpoint to get OTP for email
 	resp, err = client.R().EnableTrace().
 		SetQueryParams(map[string]string{"email": hash + "@gmail.com"}).
-		Get(baseURL + "/internal/user/otp")
+		Get(baseURL + "/admin/user/otp")
 	printTest(resp, err)
 	otp := getField(resp, "otp")
 
@@ -53,6 +53,6 @@ func main() {
 
 	resp, err = client.R().EnableTrace().
 		SetHeader("Authorization", sessionToken).
-		Patch(baseURL + "/me")
+		Patch(baseURL + "/user/profile")
 	printTest(resp, err)
 }

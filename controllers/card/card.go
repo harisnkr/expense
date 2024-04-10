@@ -68,7 +68,21 @@ func (a *Impl) SearchCards(c *gin.Context) {
 	var (
 		cards []models.Card
 	)
-	//a.database.Find(&cards)
+
+	cursor, err := a.collections.Cards.Find(c, nil)
+	if err != nil {
+		return
+	}
+	defer cursor.Close(c)
+
+	// Slice to store the decoded documents
+	var results []models.Card
+
+	// Decode all documents into the slice
+	if err = cursor.All(c, &results); err != nil {
+		log.Warn("SearchCards failed with err: ", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"cards": cards,

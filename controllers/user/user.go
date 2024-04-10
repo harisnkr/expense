@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
@@ -44,6 +44,7 @@ func (u *Impl) RegisterUser(c *gin.Context) {
 	var (
 		collection = u.collections.Users
 		req        *dto.RegisterUserRequest
+		log        = logrus.WithContext(c)
 	)
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -53,11 +54,11 @@ func (u *Impl) RegisterUser(c *gin.Context) {
 	// Check if the username or email already exists
 	var existingUser models.User
 	err := collection.FindOne(c, bson.M{"email": req.Email}).Decode(&existingUser)
-	if err == nil {
+	if err == nil { // if no error (email was found)
 		if strings.EqualFold(existingUser.Email, req.Email) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Email already exists"})
+			c.JSON(http.StatusConflict, gin.H{"error": "Email already exists"})
+			return
 		}
-		return
 	}
 
 	// if not proceed on to create newUser
@@ -74,10 +75,11 @@ func (u *Impl) RegisterUser(c *gin.Context) {
 		log.Fatal(err)
 		// TODO: create generic handlers for errors
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Unknown error"})
+		return
 	}
 
 	// Send email with verification link
-	go sendVerificationEmail(req.Email, otp)
+	go sendVerificationEmail(c, req.Email, otp)
 	c.JSON(http.StatusCreated, gin.H{"message": "Check email for verification code."})
 }
 
@@ -85,18 +87,20 @@ func (u *Impl) RegisterUser(c *gin.Context) {
 func (u *Impl) VerifyEmail(c *gin.Context) {
 	var (
 		collection = u.collections.Users
+		log        = logrus.WithContext(c)
 	)
 
 	var req *dto.UserEmailVerifyRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// Fetch the user by email and verificationCode
 	var user models.User
-	err := u.collections.Users.FindOne(c, bson.M{"email": req.Email, "verification_code": req.VerificationCode}).Decode(&user)
+	err := collection.FindOne(c, bson.M{"email": req.Email, "verification_code": req.VerificationCode}).Decode(&user)
 	if err != nil {
+		log.Warn("verification code not found in database for given email")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid verification code"})
 		return
 	}
@@ -104,11 +108,16 @@ func (u *Impl) VerifyEmail(c *gin.Context) {
 	// Mark the user as verified
 	update := bson.M{"$set": bson.M{"verified": true}}
 	if _, err = collection.UpdateOne(c, bson.M{"email": user.Email}, update); err != nil {
-		log.Fatal(err)
+		log.Warn("failed to mark the user as verified: ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Unknown error"})
+		return
 	}
 
 	tokenDuration, tokenString := generateSessionJWT(c, user, err)
+	if tokenString == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate session token"})
+		return
+	}
 	c.JSON(http.StatusOK, dto.UserLoginResponse{
 		SessionToken: tokenString,
 		ExpiresIn:    tokenDuration.String(),
@@ -116,8 +125,11 @@ func (u *Impl) VerifyEmail(c *gin.Context) {
 }
 
 func generateSessionJWT(c *gin.Context, user models.User, err error) (time.Duration, string) {
-	tokenDuration := time.Hour * 24
-	exp := time.Now().Add(tokenDuration).Unix()
+	var (
+		log      = logrus.WithContext(c)
+		tokenTTL = time.Hour * 24
+	)
+	exp := time.Now().Add(tokenTTL).Unix()
 	iat := time.Now().Unix()
 	nbf := time.Now().Unix()
 	iss := common.Issuer
@@ -126,6 +138,7 @@ func generateSessionJWT(c *gin.Context, user models.User, err error) (time.Durat
 
 	token := jwt.NewWithClaims(jwt.SigningMethodES256, jwt.MapClaims{
 		"email": user.Email,
+		"jti":   uuid.New().String(),
 		"exp":   exp,
 		"iat":   iat,
 		"iss":   iss,
@@ -137,18 +150,19 @@ func generateSessionJWT(c *gin.Context, user models.User, err error) (time.Durat
 	if err != nil {
 		log.Fatal("failed to generate jwt", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Unknown error"})
+		return time.Duration(0), tokenString
 	}
-	return tokenDuration, tokenString
+	return tokenTTL, tokenString
 }
 
 // sendVerificationEmail sends an email with the verification link
-func sendVerificationEmail(email, token string) {
+func sendVerificationEmail(c *gin.Context, email, token string) {
 	// TODO: Implement email sending logic here
-	log.Debugf("Sending verification email to %s with OTP: %s", email, token)
+	logrus.WithContext(c).Debugf("Sending verification email to %s with OTP: %s", email, token)
 }
 
 func (u *Impl) UpdateMe(c *gin.Context) {
-	c.JSON(http.StatusAccepted, gin.H{"message": "User successfully authenticated!"})
+	c.IndentedJSON(http.StatusAccepted, gin.H{"message": "User successfully authenticated!"})
 }
 
 func (u *Impl) DeleteUser(c *gin.Context) {
@@ -157,12 +171,17 @@ func (u *Impl) DeleteUser(c *gin.Context) {
 }
 
 func (u *Impl) GetEmailOTP(c *gin.Context) {
-	email := c.Query("email")
+	var (
+		log   = logrus.WithContext(c)
+		email = c.Query("email")
+	)
 	var user models.User
 	emailEscaped, _ := url.QueryUnescape(email)
 	err := u.collections.Users.FindOne(c, bson.M{"email": strings.TrimSpace(emailEscaped)}).Decode(&user)
 	if err != nil {
+		log.Warn("OTP not found for given email")
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Unknown error"})
+		return
 	}
 	c.JSON(http.StatusOK, gin.H{"otp": user.VerificationCode})
 }

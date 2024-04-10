@@ -7,7 +7,7 @@ import (
 )
 
 func Health(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, gin.H{
+	ctx.IndentedJSON(http.StatusOK, gin.H{
 		"message": "expense service is up!",
 	})
 }

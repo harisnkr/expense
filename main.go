@@ -31,8 +31,8 @@ func main() {
 
 	// routes
 	r.GET("/health", controllers.Health)
-	registerCardsRoutes(r, cardAPI)
-	registerUsersRoutes(r, userAPI)
+	registerCardRoutes(r, cardAPI)
+	registerUserRoutes(r, userAPI)
 
 	if err := r.Run(); err != nil {
 		log.Error(logkeys.Error, err, "Failed to start server")
@@ -40,26 +40,31 @@ func main() {
 	}
 }
 
-func registerUsersRoutes(r *gin.Engine, userAPI user.API) {
-	// onboarding
-	r.POST("/user/register", userAPI.RegisterUser)
-	r.POST("/user/email/verify", userAPI.VerifyEmail)
-
-	r.GET("/internal/user/otp", userAPI.GetEmailOTP)
-	// profile related
-	r.PATCH("/me", middleware.Auth(), userAPI.UpdateMe)
+func registerUserRoutes(r *gin.Engine, userAPI user.API) {
+	userRouter := r.Group("/user")
+	{
+		userRouter.POST("/register", userAPI.RegisterUser)
+		userRouter.POST("/email/verify", userAPI.VerifyEmail)
+		userRouter.PATCH("/profile", middleware.Auth(), userAPI.UpdateMe)
+	}
+	adminRouter := r.Group("/admin")
+	{
+		adminRouter.GET("user/otp", userAPI.GetEmailOTP)
+	}
 }
 
-func registerCardsRoutes(r *gin.Engine, cardAPI card.API) {
-	// TODO: use adminGroup := router.Group("/admin")
-	r.POST("/admin/card", cardAPI.AdminCreateCard)
-	r.PUT("/admin/card/:id", cardAPI.AdminUpdateCard)
-	r.DELETE("/admin/card/:id", cardAPI.AdminDeleteCard)
+func registerCardRoutes(r *gin.Engine, cardAPI card.API) {
+	adminRouter := r.Group("/admin")
+	{
+		adminRouter.POST("/card", cardAPI.AdminCreateCard)
+		adminRouter.PUT("/card/:id", cardAPI.AdminUpdateCard)
+		adminRouter.DELETE("/card/:id", cardAPI.AdminDeleteCard)
+	}
 
-	// user facing
 	r.GET("/cards", cardAPI.SearchCards)
 	r.GET("/card/:id", cardAPI.SearchCard)
-	r.POST("/user/card/", cardAPI.AddCardToUser)
+
+	r.POST("/user/card/", middleware.Auth(), cardAPI.AddCardToUser)
 }
 
 func init() {

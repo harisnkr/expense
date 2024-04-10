@@ -14,6 +14,7 @@ type UserEmailVerifyRequest struct {
 	VerificationCode string `binding:"required"       json:"verificationCode"`
 }
 
+// UserLoginResponse is the response body /user/login
 type UserLoginResponse struct {
 	SessionToken string `json:"sessionToken"`
 	ExpiresIn    string `json:"expiresIn"`
