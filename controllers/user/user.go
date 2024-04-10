@@ -2,6 +2,7 @@ package user
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -26,6 +27,7 @@ type API interface {
 	VerifyEmail(ctx *gin.Context)
 	UpdateMe(ctx *gin.Context)
 	DeleteUser(ctx *gin.Context)
+	GetEmailOTP(ctx *gin.Context)
 }
 
 type Impl struct {
@@ -76,7 +78,7 @@ func (u *Impl) RegisterUser(c *gin.Context) {
 
 	// Send email with verification link
 	go sendVerificationEmail(req.Email, otp)
-	c.JSON(http.StatusCreated, gin.H{"message": "Check email for verification code.", "otp": otp})
+	c.JSON(http.StatusCreated, gin.H{"message": "Check email for verification code."})
 }
 
 // VerifyEmail verifies the email with the verification token
@@ -152,6 +154,17 @@ func (u *Impl) UpdateMe(c *gin.Context) {
 func (u *Impl) DeleteUser(c *gin.Context) {
 	//TODO implement me
 	panic("implement me")
+}
+
+func (u *Impl) GetEmailOTP(c *gin.Context) {
+	email := c.Query("email")
+	var user models.User
+	emailEscaped, _ := url.QueryUnescape(email)
+	err := u.collections.Users.FindOne(c, bson.M{"email": strings.TrimSpace(emailEscaped)}).Decode(&user)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Unknown error"})
+	}
+	c.JSON(http.StatusOK, gin.H{"otp": user.VerificationCode})
 }
 
 func populateUserEntry(newUser *models.User, req *dto.RegisterUserRequest, hashedPassword []byte) string {

@@ -44,6 +44,8 @@ func registerUsersRoutes(r *gin.Engine, userAPI user.API) {
 	// onboarding
 	r.POST("/user/register", userAPI.RegisterUser)
 	r.POST("/user/email/verify", userAPI.VerifyEmail)
+
+	r.GET("/internal/user/otp", userAPI.GetEmailOTP)
 	// profile related
 	r.PATCH("/me", middleware.Auth(), userAPI.UpdateMe)
 }
