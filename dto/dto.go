@@ -19,3 +19,9 @@ type UserLoginResponse struct {
 	SessionToken string `json:"sessionToken"`
 	ExpiresIn    string `json:"expiresIn"`
 }
+
+// AdminDeleteCardRequest is the request body to delete a card listed
+type AdminDeleteCardRequest struct {
+	Name       string `json:"name"`
+	IssuerBank string `json:"issuerBank"`
+}

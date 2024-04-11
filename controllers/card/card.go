@@ -4,10 +4,12 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/harisnkr/expense/data"
+	"github.com/harisnkr/expense/dto"
 	"github.com/harisnkr/expense/models"
 )
 
@@ -32,7 +34,10 @@ func New(database *mongo.Client, collections *data.Collections) *Impl {
 
 // AdminCreateCard creates a card object
 func (a *Impl) AdminCreateCard(c *gin.Context) {
-	var card models.Card
+	var (
+		card models.Card
+		log  = logrus.WithContext(c)
+	)
 	if err := c.ShouldBindJSON(&card); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -48,9 +53,23 @@ func (a *Impl) AdminCreateCard(c *gin.Context) {
 
 // AdminDeleteCard deletes a card object
 func (a *Impl) AdminDeleteCard(c *gin.Context) {
-	//var card models.Cards
-	//a.database.Delete(&card, c.Param("id"))
-	c.Status(http.StatusOK)
+	var (
+		req *dto.AdminDeleteCardRequest
+		log = logrus.WithContext(c)
+	)
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	deleteResult, err := a.collections.Cards.DeleteOne(c, bson.M{"name": req.Name, "issuer_bank": req.IssuerBank})
+	if err != nil {
+		log.Warn("delete card error: ", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, deleteResult)
 }
 
 // SearchCard search for one card available TODO: make this search by `Name` from models.Card
@@ -67,6 +86,7 @@ func (a *Impl) SearchCard(c *gin.Context) {
 func (a *Impl) SearchCards(c *gin.Context) {
 	var (
 		cards []models.Card
+		log   = logrus.WithContext(c)
 	)
 
 	cursor, err := a.collections.Cards.Find(c, nil)
@@ -90,7 +110,7 @@ func (a *Impl) SearchCards(c *gin.Context) {
 }
 
 func (a *Impl) AdminUpdateCard(c *gin.Context) {
-	// parse request body and path parameter
+	//parse request body and path parameter
 	//var req dto.UpdateCardReq
 	//c.Bind(&req)
 

@@ -58,7 +58,7 @@ func registerCardRoutes(r *gin.Engine, cardAPI card.API) {
 	{
 		adminRouter.POST("/card", cardAPI.AdminCreateCard)
 		adminRouter.PUT("/card/:id", cardAPI.AdminUpdateCard)
-		adminRouter.DELETE("/card/:id", cardAPI.AdminDeleteCard)
+		adminRouter.DELETE("/card", cardAPI.AdminDeleteCard)
 	}
 
 	r.GET("/cards", cardAPI.SearchCards)
