@@ -63,7 +63,8 @@ func (a *Impl) AdminDeleteCard(c *gin.Context) {
 		return
 	}
 
-	deleteResult, err := a.collections.Cards.DeleteOne(c, bson.M{"name": req.Name, "issuer_bank": req.IssuerBank})
+	deleteResult, err := a.collections.Cards.DeleteOne(c,
+		bson.M{"name": req.Name, "issuer_bank": req.IssuerBank, "network": req.Network})
 	if err != nil {
 		log.Warn("delete card error: ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -72,14 +73,35 @@ func (a *Impl) AdminDeleteCard(c *gin.Context) {
 	c.JSON(http.StatusOK, deleteResult)
 }
 
-// SearchCard search for one card available TODO: make this search by `Name` from models.Card
+// SearchCard search for one card available
 func (a *Impl) SearchCard(c *gin.Context) {
-	//var card models.Cards
-	//a.database.First(&card, c.Param("id"))
+	var (
+		cards []models.Card
+		log   = logrus.WithContext(c)
+	)
+	log.Debug("search cards name: " + c.Param("name"))
 
-	//c.JSON(http.StatusOK, gin.H{
-	//	"card": card,
-	//})
+	cursor, err := a.collections.Cards.Find(c, bson.D{{"name", c.Param("name")}})
+	if err != nil {
+		log.Warn("find card error: ", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err = cursor.All(c, &cards); err != nil {
+		log.Warn("cursor.All error: ", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if len(cards) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "no card result found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"result": cards,
+	})
 }
 
 // SearchCards searches for all cards available

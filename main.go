@@ -62,7 +62,7 @@ func registerCardRoutes(r *gin.Engine, cardAPI card.API) {
 	}
 
 	r.GET("/cards", cardAPI.SearchCards)
-	r.GET("/card/:id", cardAPI.SearchCard)
+	r.GET("/card/:name", cardAPI.SearchCard)
 
 	r.POST("/user/card/", middleware.Auth(), cardAPI.AddCardToUser)
 }
