@@ -20,17 +20,13 @@ type UserLoginRequest struct {
 	Password string `binding:"required,password" json:"password"`
 }
 
-// UserLoginResponse is the response body /user/login
+// UserLoginResponse is the response body for POST /user/login
 type UserLoginResponse struct {
 	SessionToken string `json:"sessionToken"`
 	ExpiresIn    string `json:"expiresIn"`
 }
 
-// GetCardRequest ...
-type GetCardRequest struct {
-	Name string `json:"name"`
-}
-
+// AddCardToUserRequest is the request body for POST /user/card
 type AddCardToUserRequest struct {
 	CardID string `json:"cardID"`
 }
