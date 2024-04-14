@@ -38,6 +38,7 @@ func Auth() gin.HandlerFunc {
 
 		if claims, ok := token.Claims.(*Claims); ok && token.Valid {
 			c.Set("email", claims.Email)
+			c.Set("userID", claims.Subject)
 			c.Next()
 		} else {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})

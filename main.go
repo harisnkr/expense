@@ -42,9 +42,9 @@ func main() {
 func registerUserRoutes(r *gin.Engine, userAPI user.API) {
 	userRouter := r.Group("/user")
 	{
-		userRouter.POST("/register", userAPI.RegisterUser)
-		userRouter.POST("/email/verify", userAPI.VerifyEmail)
-		userRouter.PATCH("/profile", middleware.Auth(), userAPI.UpdateMe)
+		userRouter.POST("/register", middleware.RequestID, userAPI.RegisterUser)
+		userRouter.POST("/email/verify", middleware.RequestID, userAPI.VerifyEmail)
+		userRouter.PATCH("/profile", middleware.RequestID, middleware.Auth(), userAPI.UpdateMe)
 	}
 	adminRouter := r.Group("/admin")
 	{
@@ -63,7 +63,7 @@ func registerCardRoutes(r *gin.Engine, cardAPI card.API) {
 	r.GET("/cards", cardAPI.SearchCards)
 	r.GET("/card/:name", cardAPI.SearchCard)
 
-	r.POST("/user/card/", middleware.Auth(), cardAPI.AddCardToUser)
+	r.POST("/user/card/", middleware.RequestID, middleware.Auth(), cardAPI.AddCardToUser)
 }
 
 func init() {
