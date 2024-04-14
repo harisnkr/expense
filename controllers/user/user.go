@@ -1,7 +1,6 @@
 package user
 
 import (
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -12,15 +11,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"golang.org/x/crypto/bcrypt"
 
 	"github.com/harisnkr/expense/common"
 	"github.com/harisnkr/expense/config"
 	"github.com/harisnkr/expense/data"
 	"github.com/harisnkr/expense/dto"
 	"github.com/harisnkr/expense/models"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // API is an interface for operations related to models.User
@@ -42,138 +40,6 @@ type Impl struct {
 // New creates and returns a new user.API implementation for usage with routes
 func New(database *mongo.Client, collections *data.Collections) *Impl {
 	return &Impl{database, collections}
-}
-
-// RegisterUser registers a new user with username, password, and email
-func (u *Impl) RegisterUser(c *gin.Context) {
-	var (
-		collection = u.collections.Users
-		req        *dto.RegisterUserRequest
-		log        = slog.With(c)
-	)
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Check if the username or email already exists
-	var existingUser models.User
-	err := collection.FindOne(c, bson.M{"email": req.Email}).Decode(&existingUser)
-	if err == nil { // if no error (email was found)
-		if strings.EqualFold(existingUser.Email, req.Email) {
-			c.JSON(http.StatusConflict, gin.H{"error": "Email already exists"})
-			return
-		}
-	}
-
-	// if not proceed on to create newUser
-	newUser := &models.User{}
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
-		return
-	}
-	otp := populateUserEntry(newUser, req, hashedPassword)
-
-	// Insert the new req into the database
-	if _, err = collection.InsertOne(c, newUser); err != nil {
-		log.Error("Failed to insert new user", err)
-		// TODO: create generic handlers for errors
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Unknown error"})
-		return
-	}
-
-	// Send email with verification link
-	go sendVerificationEmail(c, req.Email, otp)
-	c.JSON(http.StatusCreated, gin.H{"message": "Check email for verification code."})
-}
-
-// VerifyEmail verifies the email with the verification token
-func (u *Impl) VerifyEmail(c *gin.Context) {
-	var (
-		collection = u.collections.Users
-		log        = slog.With(c)
-	)
-
-	var req *dto.UserEmailVerifyRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Fetch the user by email and verificationCode
-	var user models.User
-	err := collection.FindOne(c, bson.M{"email": req.Email, "verification_code": req.VerificationCode}).Decode(&user)
-	if err != nil {
-		log.Warn("verification code not found in database for given email")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid verification code"})
-		return
-	}
-
-	// Mark the user as verified
-	update := bson.M{"$set": bson.M{"verified": true}}
-	if _, err = collection.UpdateOne(c, bson.M{"email": user.Email}, update); err != nil {
-		log.Warn("failed to mark the user as verified: ", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Unknown error"})
-		return
-	}
-
-	tokenDuration, tokenString := generateSessionJWT(c, user)
-	if tokenString == "" {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate session token"})
-		return
-	}
-	c.JSON(http.StatusOK, dto.UserLoginResponse{
-		SessionToken: tokenString,
-		ExpiresIn:    tokenDuration.String(),
-	})
-}
-
-// Login logs in the user with username and password (TODO: google login integration)
-func (u *Impl) Login(c *gin.Context) {
-	var (
-		req dto.UserLoginRequest
-		log = slog.With(c)
-	)
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	var user models.User
-	if err := u.collections.Users.FindOne(c, bson.M{"email": req.Email}).Decode(&user); err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			log.Info("User not found")
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-			return
-		}
-		log.Info("Failed to find user", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	log = log.With("email", user.Email)
-	if !user.Verified {
-		log.Info("User is not verified")
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User is not verified"})
-		return
-	}
-
-	err := bcrypt.CompareHashAndPassword([]byte(req.Password), []byte(user.Password))
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid password"})
-		log.Warn("Invalid password entered for user", err)
-		return
-	}
-
-	tokenDuration, tokenString := generateSessionJWT(c, user)
-	if tokenString == "" {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate session token"})
-		return
-	}
-	c.JSON(http.StatusOK, dto.UserLoginResponse{
-		SessionToken: tokenString,
-		ExpiresIn:    tokenDuration.String(),
-	})
 }
 
 // UpdateMe updates the authenticated user's profile
