@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	log "github.com/sirupsen/logrus"
+	log "log/slog"
 
 	"github.com/harisnkr/expense/config"
 )
@@ -30,7 +30,7 @@ func Auth() gin.HandlerFunc {
 			return &config.ECDSAKey.PublicKey, nil
 		})
 		if err != nil {
-			log.Fatal(err)
+			log.Error("jwt.ParseWithClaims failed", err)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token (ParseWithClaims)"})
 			c.Abort()
 			return

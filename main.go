@@ -2,12 +2,11 @@ package main
 
 import (
 	"context"
+	log "log/slog"
 
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/harisnkr/expense/common"
-	"github.com/harisnkr/expense/common/logkeys"
 	"github.com/harisnkr/expense/controllers"
 	"github.com/harisnkr/expense/controllers/card"
 	"github.com/harisnkr/expense/controllers/user"
@@ -29,13 +28,13 @@ func main() {
 	cardAPI = card.New(client, collections)
 	userAPI = user.New(client, collections)
 
-	// routes
 	r.GET("/health", controllers.Health)
+
 	registerCardRoutes(r, cardAPI)
 	registerUserRoutes(r, userAPI)
 
 	if err := r.Run(); err != nil {
-		log.Error(logkeys.Error, err, "Failed to start server")
+		log.Error("Failed to start server, %w", err)
 		return
 	}
 }

@@ -1,6 +1,8 @@
 package user
 
 import (
+	"fmt"
+	log "log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -9,7 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
@@ -44,7 +45,6 @@ func (u *Impl) RegisterUser(c *gin.Context) {
 	var (
 		collection = u.collections.Users
 		req        *dto.RegisterUserRequest
-		log        = logrus.WithContext(c)
 	)
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -72,7 +72,7 @@ func (u *Impl) RegisterUser(c *gin.Context) {
 
 	// Insert the new req into the database
 	if _, err = collection.InsertOne(c, newUser); err != nil {
-		log.Fatal(err)
+		log.Error("Failed to insert new user", err)
 		// TODO: create generic handlers for errors
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Unknown error"})
 		return
@@ -87,7 +87,6 @@ func (u *Impl) RegisterUser(c *gin.Context) {
 func (u *Impl) VerifyEmail(c *gin.Context) {
 	var (
 		collection = u.collections.Users
-		log        = logrus.WithContext(c)
 	)
 
 	var req *dto.UserEmailVerifyRequest
@@ -125,10 +124,7 @@ func (u *Impl) VerifyEmail(c *gin.Context) {
 }
 
 func generateSessionJWT(c *gin.Context, user models.User, err error) (time.Duration, string) {
-	var (
-		log      = logrus.WithContext(c)
-		tokenTTL = time.Hour * 24
-	)
+	tokenTTL := time.Hour * 24
 	exp := time.Now().Add(tokenTTL).Unix()
 	iat := time.Now().Unix()
 	nbf := time.Now().Unix()
@@ -148,8 +144,7 @@ func generateSessionJWT(c *gin.Context, user models.User, err error) (time.Durat
 	})
 	tokenString, err := token.SignedString(config.ECDSAKey)
 	if err != nil {
-		log.Fatal("failed to generate jwt", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Unknown error"})
+		log.Error("failed to generate jwt", err)
 		return time.Duration(0), tokenString
 	}
 	return tokenTTL, tokenString
@@ -158,7 +153,7 @@ func generateSessionJWT(c *gin.Context, user models.User, err error) (time.Durat
 // sendVerificationEmail sends an email with the verification link
 func sendVerificationEmail(c *gin.Context, email, token string) {
 	// TODO: Implement email sending logic here
-	logrus.WithContext(c).Debugf("Sending verification email to %s with OTP: %s", email, token)
+	log.InfoContext(c, fmt.Sprintf("Sending verification email to %s with OTP: %s", email, token))
 }
 
 func (u *Impl) UpdateMe(c *gin.Context) {
@@ -172,7 +167,6 @@ func (u *Impl) DeleteUser(c *gin.Context) {
 
 func (u *Impl) GetEmailOTP(c *gin.Context) {
 	var (
-		log   = logrus.WithContext(c)
 		email = c.Query("email")
 	)
 	var user models.User

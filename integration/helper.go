@@ -6,7 +6,7 @@ import (
 	"math/rand"
 
 	"github.com/go-resty/resty/v2"
-	log "github.com/sirupsen/logrus"
+	log "log/slog"
 )
 
 func getField(resp *resty.Response, s string) string {

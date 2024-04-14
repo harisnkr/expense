@@ -1,9 +1,8 @@
 package common
 
 import (
+	log "log/slog"
 	"os"
-
-	log "github.com/sirupsen/logrus"
 
 	"github.com/harisnkr/expense/config"
 )
@@ -18,19 +17,22 @@ const (
 func SetDependencies() {
 	config.InitEnvVar()
 	config.LoadECDSAKey()
-	setLogLevel()
 	initValidators()
+	initLogger()
 }
 
-func setLogLevel() {
-	env := os.Getenv("MODE")
-	log.Info("detected environment mode: ", env)
+func initLogger() {
+	var (
+		env = os.Getenv("MODE")
+	)
+	log.Info("Initializing logger", "env detected", env)
+
 	switch env {
 	case development, staging:
-		log.SetLevel(log.DebugLevel)
+		log.SetLogLoggerLevel(log.LevelDebug)
 	case production:
-		log.SetLevel(log.InfoLevel)
+		log.SetLogLoggerLevel(log.LevelInfo)
 	default:
-		log.SetLevel(log.DebugLevel)
+		log.SetLogLoggerLevel(log.LevelDebug)
 	}
 }

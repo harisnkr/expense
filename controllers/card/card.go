@@ -1,10 +1,10 @@
 package card
 
 import (
+	log "log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
@@ -36,7 +36,6 @@ func New(database *mongo.Client, collections *data.Collections) *Impl {
 func (a *Impl) AdminCreateCard(c *gin.Context) {
 	var (
 		card models.Card
-		log  = logrus.WithContext(c)
 	)
 	if err := c.ShouldBindJSON(&card); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -45,7 +44,9 @@ func (a *Impl) AdminCreateCard(c *gin.Context) {
 
 	result, err := a.collections.Cards.InsertOne(c, card)
 	if err != nil {
-		log.Fatal(err)
+		log.Error("Failed to create card", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	c.JSON(http.StatusCreated, result)
@@ -53,10 +54,7 @@ func (a *Impl) AdminCreateCard(c *gin.Context) {
 
 // AdminDeleteCard deletes a card object
 func (a *Impl) AdminDeleteCard(c *gin.Context) {
-	var (
-		req *dto.AdminDeleteCardRequest
-		log = logrus.WithContext(c)
-	)
+	var req *dto.AdminDeleteCardRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -77,7 +75,6 @@ func (a *Impl) AdminDeleteCard(c *gin.Context) {
 func (a *Impl) SearchCard(c *gin.Context) {
 	var (
 		cards []models.Card
-		log   = logrus.WithContext(c)
 	)
 	log.Debug("search cards name: " + c.Param("name"))
 
@@ -106,10 +103,7 @@ func (a *Impl) SearchCard(c *gin.Context) {
 
 // SearchCards searches for all cards available
 func (a *Impl) SearchCards(c *gin.Context) {
-	var (
-		cards []models.Card
-		log   = logrus.WithContext(c)
-	)
+	var cards []models.Card
 
 	cursor, err := a.collections.Cards.Find(c, nil)
 	if err != nil {
@@ -122,7 +116,7 @@ func (a *Impl) SearchCards(c *gin.Context) {
 
 	// Decode all documents into the slice
 	if err = cursor.All(c, &results); err != nil {
-		log.Warn("SearchCards failed with err: ", err)
+		log.Warn("SearchCards failed", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
@@ -155,7 +149,7 @@ func (a *Impl) AdminUpdateCard(c *gin.Context) {
 	})
 }
 
-func (a *Impl) AddCardToUser(ctx *gin.Context) {
+func (a *Impl) AddCardToUser(_ *gin.Context) {
 	//TODO implement me
 	panic("implement me")
 }

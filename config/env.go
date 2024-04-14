@@ -10,7 +10,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	log "github.com/sirupsen/logrus"
+	log "log/slog"
 )
 
 var ECDSAKey *ecdsa.PrivateKey
@@ -18,7 +18,7 @@ var ECDSAKey *ecdsa.PrivateKey
 // InitEnvVar initialises environment variables declared in ../.env
 func InitEnvVar() {
 	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env file")
+		log.Error("Error loading .env file")
 	}
 }
 
@@ -27,18 +27,16 @@ func LoadECDSAKey() {
 	keyFromEnv := os.Getenv("ECDSA_PRIVATE_KEY")
 	if keyFromEnv != "" {
 		if err := setECDSAKeyFromEnv(keyFromEnv); err != nil {
-			log.Fatal("error loading ECDSA key from .env file: ", err)
+			log.Error("error loading ECDSA key from .env file: ", err)
 		}
-		return
 	}
 	generateRandomECDSAKey()
-
 }
 
 func setECDSAKeyFromEnv(keyFromEnv string) error {
 	keyBytes, err := base64.URLEncoding.DecodeString(keyFromEnv)
 	if err != nil {
-		log.Fatal("error decoding base64 string", err)
+		return errors.New("error decoding base64 string")
 	}
 
 	privateKey, err := x509.ParseECPrivateKey(keyBytes)
@@ -53,12 +51,12 @@ func setECDSAKeyFromEnv(keyFromEnv string) error {
 func generateRandomECDSAKey() {
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
-		log.Fatal("Error generating ECDSA private key: ", err)
+		log.Error("Error generating ECDSA private key: ", err)
 		return
 	}
 	privateKeyBytes, err := x509.MarshalECPrivateKey(privateKey)
 	if err != nil {
-		log.Fatal("Error marshaling ECDSA private key", err)
+		log.Error("Error marshaling ECDSA private key", err)
 		return
 	}
 	ECDSAKey = privateKey

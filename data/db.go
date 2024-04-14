@@ -2,9 +2,9 @@ package data
 
 import (
 	"context"
+	log "log/slog"
 	"os"
 
-	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -30,15 +30,16 @@ func InitDatabase(ctx context.Context) (*mongo.Client, *Collections) {
 	// Connect to MongoDB
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
-		log.Fatal(err)
+		log.Error("failed to connect to mongodb", err)
+		panic(err)
 	}
 
 	// Check the connection
-	err = client.Ping(ctx, nil)
-	if err != nil {
-		log.Fatal(err)
+	if err = client.Ping(ctx, nil); err != nil {
+		log.Error("Failed to connect to database")
+		panic(err)
 	}
-	log.Println("Connected to MongoDB!")
+	log.Info("Connected to MongoDB!")
 
 	return client, &Collections{
 		Cards: client.Database(databaseName).Collection(cardsCollection),
