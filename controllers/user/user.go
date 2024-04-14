@@ -129,6 +129,7 @@ func (u *Impl) VerifyEmail(c *gin.Context) {
 	})
 }
 
+// Login logs in the user with username and password (TODO: google login integration)
 func (u *Impl) Login(c *gin.Context) {
 	var (
 		req dto.UserLoginRequest

@@ -3,7 +3,7 @@ package card
 import (
 	"context"
 	"github.com/google/uuid"
-	slog "log/slog"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
