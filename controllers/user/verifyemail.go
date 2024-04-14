@@ -46,7 +46,7 @@ func (u *Impl) VerifyEmail(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate session token"})
 		return
 	}
-	c.JSON(http.StatusOK, UserLoginResponse{
+	c.JSON(http.StatusOK, dto.UserLoginResponse{
 		SessionToken: tokenString,
 		ExpiresIn:    tokenDuration.String(),
 	})
