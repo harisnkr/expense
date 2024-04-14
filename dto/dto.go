@@ -14,6 +14,12 @@ type UserEmailVerifyRequest struct {
 	VerificationCode string `binding:"required"       json:"verificationCode"`
 }
 
+// UserLoginRequest is the request body for POST /user/login
+type UserLoginRequest struct {
+	Email    string `binding:"required,email" json:"email"`
+	Password string `binding:"required,password" json:"password"`
+}
+
 // UserLoginResponse is the response body /user/login
 type UserLoginResponse struct {
 	SessionToken string `json:"sessionToken"`

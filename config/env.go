@@ -29,6 +29,7 @@ func LoadECDSAKey() {
 		if err := setECDSAKeyFromEnv(keyFromEnv); err != nil {
 			log.Error("error loading ECDSA key from .env file: ", err)
 		}
+		return
 	}
 	generateRandomECDSAKey()
 }
@@ -45,6 +46,7 @@ func setECDSAKeyFromEnv(keyFromEnv string) error {
 	}
 
 	ECDSAKey = privateKey
+	log.Info("Successfully loaded ECDSA key from .env file")
 	return nil
 }
 

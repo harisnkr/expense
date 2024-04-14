@@ -1,8 +1,9 @@
 package user
 
 import (
+	"errors"
 	"fmt"
-	log "log/slog"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -26,16 +27,19 @@ import (
 type API interface {
 	RegisterUser(ctx *gin.Context)
 	VerifyEmail(ctx *gin.Context)
+	Login(ctx *gin.Context)
 	UpdateMe(ctx *gin.Context)
 	DeleteUser(ctx *gin.Context)
 	GetEmailOTP(ctx *gin.Context)
 }
 
+// Impl is the implementation for user.API
 type Impl struct {
 	database    *mongo.Client
 	collections *data.Collections
 }
 
+// New creates and returns a new user.API implementation for usage with routes
 func New(database *mongo.Client, collections *data.Collections) *Impl {
 	return &Impl{database, collections}
 }
@@ -45,6 +49,7 @@ func (u *Impl) RegisterUser(c *gin.Context) {
 	var (
 		collection = u.collections.Users
 		req        *dto.RegisterUserRequest
+		log        = slog.With(c)
 	)
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -87,6 +92,7 @@ func (u *Impl) RegisterUser(c *gin.Context) {
 func (u *Impl) VerifyEmail(c *gin.Context) {
 	var (
 		collection = u.collections.Users
+		log        = slog.With(c)
 	)
 
 	var req *dto.UserEmailVerifyRequest
@@ -112,7 +118,7 @@ func (u *Impl) VerifyEmail(c *gin.Context) {
 		return
 	}
 
-	tokenDuration, tokenString := generateSessionJWT(c, user, err)
+	tokenDuration, tokenString := generateSessionJWT(c, user)
 	if tokenString == "" {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate session token"})
 		return
@@ -123,8 +129,105 @@ func (u *Impl) VerifyEmail(c *gin.Context) {
 	})
 }
 
-func generateSessionJWT(c *gin.Context, user models.User, err error) (time.Duration, string) {
-	tokenTTL := time.Hour * 24
+func (u *Impl) Login(c *gin.Context) {
+	var (
+		req dto.UserLoginRequest
+		log = slog.With(c)
+	)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var user models.User
+	if err := u.collections.Users.FindOne(c, bson.M{"email": req.Email}).Decode(&user); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			log.Info("User not found")
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			return
+		}
+		log.Info("Failed to find user", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	log = log.With("email", user.Email)
+	if !user.Verified {
+		log.Info("User is not verified")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User is not verified"})
+		return
+	}
+
+	err := bcrypt.CompareHashAndPassword([]byte(req.Password), []byte(user.Password))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid password"})
+		log.Warn("Invalid password entered for user", err)
+		return
+	}
+
+	tokenDuration, tokenString := generateSessionJWT(c, user)
+	if tokenString == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate session token"})
+		return
+	}
+	c.JSON(http.StatusOK, dto.UserLoginResponse{
+		SessionToken: tokenString,
+		ExpiresIn:    tokenDuration.String(),
+	})
+}
+
+// UpdateMe updates the authenticated user's profile
+func (u *Impl) UpdateMe(c *gin.Context) {
+	c.IndentedJSON(http.StatusAccepted, gin.H{"message": "User successfully authenticated!"})
+}
+
+// DeleteUser deletes the authenticated user's profile
+func (u *Impl) DeleteUser(c *gin.Context) {
+	//TODO implement me
+	panic("implement me")
+}
+
+// GetEmailOTP is an internal endpoint (used for testing) to retrieve OTP assigned to user's email
+func (u *Impl) GetEmailOTP(c *gin.Context) {
+	var (
+		email = c.Query("email")
+		log   = slog.With(c)
+	)
+	var user models.User
+	emailEscaped, _ := url.QueryUnescape(email)
+	err := u.collections.Users.FindOne(c, bson.M{"email": strings.TrimSpace(emailEscaped)}).Decode(&user)
+	if err != nil {
+		log.Warn("OTP not found for given email")
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Unknown error"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"otp": user.VerificationCode})
+}
+
+func populateUserEntry(newUser *models.User, req *dto.RegisterUserRequest, hashedPassword []byte) string {
+	newUser.ID = uuid.New().String()
+	newUser.Email = req.Email
+	newUser.FirstName = req.FirstName
+	newUser.LastName = req.LastName
+	newUser.Password = string(hashedPassword)
+	otp := common.GenerateOTP()
+	newUser.VerificationCode = otp
+	newUser.VerificationSentAt = time.Now()
+	newUser.UpdatedAt = time.Now()
+	newUser.CreatedAt = time.Now()
+	newUser.Cards = []models.Card{}
+	newUser.Transactions = []models.Transaction{}
+	newUser.Budgets = []models.Budget{}
+	newUser.Savings = []models.Savings{}
+
+	return otp
+}
+
+func generateSessionJWT(c *gin.Context, user models.User) (time.Duration, string) {
+	var (
+		log      = slog.With(c).With("userID", user.ID, "email", user.Email)
+		tokenTTL = time.Hour * 24
+	)
+
 	exp := time.Now().Add(tokenTTL).Unix()
 	iat := time.Now().Unix()
 	nbf := time.Now().Unix()
@@ -150,46 +253,7 @@ func generateSessionJWT(c *gin.Context, user models.User, err error) (time.Durat
 	return tokenTTL, tokenString
 }
 
-// sendVerificationEmail sends an email with the verification link
 func sendVerificationEmail(c *gin.Context, email, token string) {
 	// TODO: Implement email sending logic here
-	log.InfoContext(c, fmt.Sprintf("Sending verification email to %s with OTP: %s", email, token))
-}
-
-func (u *Impl) UpdateMe(c *gin.Context) {
-	c.IndentedJSON(http.StatusAccepted, gin.H{"message": "User successfully authenticated!"})
-}
-
-func (u *Impl) DeleteUser(c *gin.Context) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (u *Impl) GetEmailOTP(c *gin.Context) {
-	var (
-		email = c.Query("email")
-	)
-	var user models.User
-	emailEscaped, _ := url.QueryUnescape(email)
-	err := u.collections.Users.FindOne(c, bson.M{"email": strings.TrimSpace(emailEscaped)}).Decode(&user)
-	if err != nil {
-		log.Warn("OTP not found for given email")
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Unknown error"})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"otp": user.VerificationCode})
-}
-
-func populateUserEntry(newUser *models.User, req *dto.RegisterUserRequest, hashedPassword []byte) string {
-	newUser.ID = uuid.New().String()
-	newUser.Email = req.Email
-	newUser.FirstName = req.FirstName
-	newUser.LastName = req.LastName
-	newUser.Password = string(hashedPassword)
-	otp := common.GenerateOTP()
-	newUser.VerificationCode = otp
-	newUser.VerificationSentAt = time.Now()
-	newUser.UpdatedAt = time.Now()
-	newUser.CreatedAt = time.Now()
-	return otp
+	slog.InfoContext(c, fmt.Sprintf("Sending verification email to %s with OTP: %s", email, token))
 }

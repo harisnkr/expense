@@ -1,6 +1,8 @@
 package card
 
 import (
+	"context"
+	"github.com/google/uuid"
 	slog "log/slog"
 	"net/http"
 
@@ -17,8 +19,8 @@ import (
 type API interface {
 	AdminCreateCard(ctx *gin.Context)
 	AdminDeleteCard(ctx *gin.Context)
-	SearchCard(ctx *gin.Context)
-	SearchCards(ctx *gin.Context)
+	GetCard(ctx *gin.Context)
+	GetAllCards(ctx *gin.Context)
 	AdminUpdateCard(ctx *gin.Context)
 	AddCardToUser(ctx *gin.Context)
 }
@@ -43,6 +45,7 @@ func (a *Impl) AdminCreateCard(c *gin.Context) {
 		return
 	}
 
+	card.ID = uuid.New().String()
 	result, err := a.collections.Cards.InsertOne(c, card)
 	if err != nil {
 		log.Error("Failed to create card", err)
@@ -75,16 +78,24 @@ func (a *Impl) AdminDeleteCard(c *gin.Context) {
 	c.JSON(http.StatusOK, deleteResult)
 }
 
-// SearchCard search for one card available
-func (a *Impl) SearchCard(c *gin.Context) {
+// GetCard gets one card by name, issuerBank and network
+func (a *Impl) GetCard(c *gin.Context) {
 	var (
-		cards []models.Card
-		log   = slog.With(c)
+		cards         []models.Card
+		reqName       = c.Param("name")
+		reqIssuerBank = c.Param("issuerBank")
+		reqNetwork    = c.Param("network")
+		log           = slog.With(c).
+				With("func", "GetCard",
+				"reqName", reqName, "reqIssuerBank", reqIssuerBank, "reqNetwork", reqNetwork)
 	)
 
-	log.Debug("incoming req to search for card with name: " + c.Param("name"))
-
-	cursor, err := a.collections.Cards.Find(c, bson.D{{"name", c.Param("name")}})
+	log.Debug("incoming req to search for card")
+	cursor, err := a.collections.Cards.Find(c, bson.D{
+		{"name", c.Param("name")},
+		{"issuer_bank", reqIssuerBank},
+		{"network", reqNetwork},
+	})
 	if err != nil {
 		log.Warn("find card error: ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -107,30 +118,32 @@ func (a *Impl) SearchCard(c *gin.Context) {
 	})
 }
 
-// SearchCards searches for all cards available
-func (a *Impl) SearchCards(c *gin.Context) {
-	var (
-		cards []models.Card
-		log   = slog.With(c)
-	)
+// GetAllCards gets all cards available
+func (a *Impl) GetAllCards(c *gin.Context) {
+	log := slog.With(c)
 
-	cursor, err := a.collections.Cards.Find(c, nil) // filter = nil to search all
+	cursor, err := a.collections.Cards.Find(c, bson.M{}) // FIXME
 	if err != nil {
+		log.Warn("find card error: ", err)
 		return
 	}
-	defer cursor.Close(c)
+	defer func(cursor *mongo.Cursor, ctx context.Context) {
+		err := cursor.Close(ctx)
+		if err != nil {
+			log.Error("cursor.Close: ", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+	}(cursor, c)
 
-	// Slice to store the decoded documents
 	var results []models.Card
-
-	// Decode all documents into the slice
 	if err = cursor.All(c, &results); err != nil {
-		log.Warn("SearchCards failed", err)
+		log.Warn("GetAllCards failed", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"cards": cards,
+		"cards": results,
 	})
 }
 
@@ -181,7 +194,7 @@ func (a *Impl) AddCardToUser(c *gin.Context) {
 	log = log.With("cardID", req.CardID)
 
 	var card models.Card
-	if err := a.collections.Cards.FindOne(c, bson.M{"card_id": req.CardID}).Decode(&card); err != nil {
+	if err := a.collections.Cards.FindOne(c, bson.M{"_id": req.CardID}).Decode(&card); err != nil {
 		log.Error("Failed to fetch card", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
