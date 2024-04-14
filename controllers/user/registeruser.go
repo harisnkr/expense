@@ -25,7 +25,7 @@ func (u *Impl) RegisterUser(c *gin.Context) {
 		return
 	}
 
-	// Check if the username or email already exists
+	// Check if email in request already exists in database
 	var existingUser models.User
 	err := collection.FindOne(c, bson.M{"email": req.Email}).Decode(&existingUser)
 	if err == nil { // if no error (email was found)
@@ -44,7 +44,7 @@ func (u *Impl) RegisterUser(c *gin.Context) {
 	}
 	otp := populateUserEntry(newUser, req, hashedPassword)
 
-	// Insert the new req into the database
+	// Insert the new user into the database
 	if _, err = collection.InsertOne(c, newUser); err != nil {
 		log.Error("Failed to insert new user", err)
 		// TODO: create generic handlers for errors

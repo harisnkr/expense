@@ -7,18 +7,40 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"errors"
+	log "log/slog"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
-	log "log/slog"
 )
 
-var ECDSAKey *ecdsa.PrivateKey
+var (
+	// ECDSAKey is the loaded/generated private key for token generation
+	ECDSAKey *ecdsa.PrivateKey
+
+	// SessionTokenTTLInHours is the loaded/configured session token TTL
+	SessionTokenTTLInHours time.Duration
+)
 
 // InitEnvVar initialises environment variables declared in ../.env
 func InitEnvVar() {
 	if err := godotenv.Load(); err != nil {
 		log.Error("Error loading .env file")
+	}
+	setTokenTTLConfig()
+}
+
+func setTokenTTLConfig() {
+	durationCfg, err := time.ParseDuration(os.Getenv("TOKEN_TTL"))
+	if err != nil {
+		log.Error("Error parsing TOKEN_TTL")
+		SessionTokenTTLInHours = time.Hour * 24 * 30 * 3 // 3 months
+		return
+	}
+	// if valid TTL config found
+	durationCfg = durationCfg * time.Hour
+	if SessionTokenTTLInHours == 0 {
+		SessionTokenTTLInHours = time.Hour * 24 * 30
 	}
 }
 

@@ -92,10 +92,10 @@ func populateUserEntry(newUser *models.User, req *dto.RegisterUserRequest, hashe
 func generateSessionJWT(c *gin.Context, user models.User) (time.Duration, string) {
 	var (
 		log      = slog.With(c).With("userID", user.ID, "email", user.Email)
-		tokenTTL = time.Hour * 24
+		tokenTTL = time.Now().Add(config.SessionTokenTTLInHours * time.Hour).Unix()
 	)
 
-	exp := time.Now().Add(tokenTTL).Unix()
+	exp := tokenTTL
 	iat := time.Now().Unix()
 	nbf := time.Now().Unix()
 	iss := common.Issuer
@@ -117,7 +117,7 @@ func generateSessionJWT(c *gin.Context, user models.User) (time.Duration, string
 		log.Error("failed to generate jwt", err)
 		return time.Duration(0), tokenString
 	}
-	return tokenTTL, tokenString
+	return time.Duration(tokenTTL), tokenString
 }
 
 func sendVerificationEmail(c *gin.Context, email, token string) {

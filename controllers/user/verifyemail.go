@@ -20,7 +20,7 @@ func (u *Impl) VerifyEmail(c *gin.Context) {
 
 	var req *dto.UserEmailVerifyRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -41,6 +41,7 @@ func (u *Impl) VerifyEmail(c *gin.Context) {
 		return
 	}
 
+	// generate sessionJWT
 	tokenDuration, tokenString := generateSessionJWT(c, user)
 	if tokenString == "" {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate session token"})
