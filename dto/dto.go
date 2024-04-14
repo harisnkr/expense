@@ -20,14 +20,11 @@ type UserLoginResponse struct {
 	ExpiresIn    string `json:"expiresIn"`
 }
 
-// AdminDeleteCardRequest is the request body to delete a card listed
-type AdminDeleteCardRequest struct {
-	Name       string `json:"name"`
-	IssuerBank string `json:"issuerBank"`
-	Network    string `json:"network"`
-}
-
 // GetCardRequest ...
 type GetCardRequest struct {
 	Name string `json:"name"`
+}
+
+type AddCardToUserRequest struct {
+	CardID string `json:"cardID"`
 }

@@ -1,7 +1,7 @@
 package card
 
 import (
-	log "log/slog"
+	slog "log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -36,6 +36,7 @@ func New(database *mongo.Client, collections *data.Collections) *Impl {
 func (a *Impl) AdminCreateCard(c *gin.Context) {
 	var (
 		card models.Card
+		log  = slog.With(c)
 	)
 	if err := c.ShouldBindJSON(&card); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -54,7 +55,10 @@ func (a *Impl) AdminCreateCard(c *gin.Context) {
 
 // AdminDeleteCard deletes a card object
 func (a *Impl) AdminDeleteCard(c *gin.Context) {
-	var req *dto.AdminDeleteCardRequest
+	var (
+		req *dto.AdminDeleteCardRequest
+		log = slog.With(c)
+	)
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -75,8 +79,10 @@ func (a *Impl) AdminDeleteCard(c *gin.Context) {
 func (a *Impl) SearchCard(c *gin.Context) {
 	var (
 		cards []models.Card
+		log   = slog.With(c)
 	)
-	log.Debug("search cards name: " + c.Param("name"))
+
+	log.Debug("incoming req to search for card with name: " + c.Param("name"))
 
 	cursor, err := a.collections.Cards.Find(c, bson.D{{"name", c.Param("name")}})
 	if err != nil {
@@ -103,9 +109,12 @@ func (a *Impl) SearchCard(c *gin.Context) {
 
 // SearchCards searches for all cards available
 func (a *Impl) SearchCards(c *gin.Context) {
-	var cards []models.Card
+	var (
+		cards []models.Card
+		log   = slog.With(c)
+	)
 
-	cursor, err := a.collections.Cards.Find(c, nil)
+	cursor, err := a.collections.Cards.Find(c, nil) // filter = nil to search all
 	if err != nil {
 		return
 	}
@@ -126,30 +135,78 @@ func (a *Impl) SearchCards(c *gin.Context) {
 }
 
 func (a *Impl) AdminUpdateCard(c *gin.Context) {
-	//parse request body and path parameter
-	//var req dto.UpdateCardReq
-	//c.Bind(&req)
+	var (
+		log = slog.With(c)
+		req *dto.AdminUpdateCardRequest
+	)
 
-	// find card to update using `id` path parameter
-	var card models.Card
-	//a.database.First(&card, c.Param("id"))
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-	// update
-	//a.database.Model(&card).Updates(
-	//	models.Cards{
-	//		IssuerBank: req.IssuerBank,
-	//		Name:       req.Name,
-	//		Network:    req.Network,
-	//		Miles:      req.Miles,
-	//	},
-	//)
+	result, err := a.collections.Cards.UpdateOne(c,
+		bson.M{"_id": req.ID},       // cardID to update
+		bson.M{"$set": req.Updates}) // fields to update
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"updated_card": card,
-	})
+	if result.ModifiedCount == 0 {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "card not updated"})
+		return
+	}
+
+	var updatedCard models.Card
+	if err = a.collections.Cards.FindOne(c, bson.M{"_id": req.ID}).Decode(&updatedCard); err != nil {
+		log.Warn("find updated card error: ", err)
+	}
+
+	log.Debug("updated card successfully")
+	c.JSON(http.StatusOK, updatedCard)
 }
 
-func (a *Impl) AddCardToUser(_ *gin.Context) {
-	//TODO implement me
-	panic("implement me")
+func (a *Impl) AddCardToUser(c *gin.Context) {
+	var (
+		userID = c.GetString("userID") // get from userID set from JWT auth
+		log    = slog.With(c, "func", "AddCardToUser", "userID", userID)
+	)
+
+	var req *dto.AddCardToUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	log = log.With("cardID", req.CardID)
+
+	var card models.Card
+	if err := a.collections.Cards.FindOne(c, bson.M{"card_id": req.CardID}).Decode(&card); err != nil {
+		log.Error("Failed to fetch card", err)
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	log.Debug("found card to add",
+		"card_id", card,
+		"name", card.Name,
+		"issuer_bank", card.IssuerBank,
+		"network", card.Network,
+	)
+
+	result, err := a.collections.Users.UpdateOne(c,
+		bson.M{"_id": userID},
+		bson.M{"$push": bson.M{"cards": card}},
+	)
+	if err != nil {
+		log.Error("Failed to add card to user", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if result.MatchedCount == 0 {
+		log.Error("Failed to add card to user", err)
+		c.JSON(http.StatusBadRequest, gin.H{"message": "failed to add card to user"})
+		return
+	}
+	log.Debug("successfully add card to user")
 }

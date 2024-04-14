@@ -2,6 +2,7 @@ package models
 
 // Card represents a credit/debit card that a user might have
 type Card struct {
+	ID         string `bson:"_id"`
 	Name       string `bson:"name"`
 	IssuerBank string `bson:"issuer_bank,omitempty"`
 	Network    string `bson:"network"`
