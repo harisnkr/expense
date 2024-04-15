@@ -3,17 +3,17 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"math/rand"
 
 	"github.com/go-resty/resty/v2"
-	log "log/slog"
 )
 
 func getField(resp *resty.Response, s string) string {
 	var respBody map[string]string
 	err := json.Unmarshal(resp.Body(), &respBody)
 	if err != nil {
-		log.Fatal("Failed to unmarshal response body with err: ", err)
+		slog.Error("err", err, "Failed to unmarshal response body")
 	}
 	return respBody[s]
 }

@@ -148,6 +148,7 @@ func (a *Impl) GetAllCards(c *gin.Context) {
 	})
 }
 
+// AdminUpdateCard updates a card object
 func (a *Impl) AdminUpdateCard(c *gin.Context) {
 	var (
 		log = slog.With(common.RequestID, c.MustGet(common.RequestID))
@@ -181,6 +182,7 @@ func (a *Impl) AdminUpdateCard(c *gin.Context) {
 	c.JSON(http.StatusOK, updatedCard)
 }
 
+// AddCardToUser adds a card to user
 func (a *Impl) AddCardToUser(c *gin.Context) {
 	var (
 		userID = c.GetString("userID") // get from userID set from JWT auth
