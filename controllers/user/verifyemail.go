@@ -25,13 +25,18 @@ func (u *Impl) VerifyEmail(c *gin.Context) {
 		return
 	}
 
-	log.Debug("incoming")
 	// Fetch the user by email and verificationCode
 	var user models.User
 	err := collection.FindOne(c, bson.M{"email": req.Email, "verification_code": req.VerificationCode}).Decode(&user)
 	if err != nil {
 		log.Warn("verification code not found in database for given email")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid verification code"})
+		return
+	}
+
+	// check if user is already verified, user can proceed to login
+	if user.Verified {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email is already verified"})
 		return
 	}
 

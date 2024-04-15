@@ -12,8 +12,6 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-
-	"github.com/harisnkr/expense/common"
 )
 
 var (
@@ -37,7 +35,7 @@ func InitEnvVar() {
 func setTokenTTLConfig() {
 	durationCfg, err := time.ParseDuration(os.Getenv("TOKEN_TTL"))
 	if err != nil {
-		log.Error(common.Error, err, "error parsing TOKEN_TTL from .env")
+		log.Error("err", err, "error parsing TOKEN_TTL from .env")
 		log.Info("Setting session token TTL to default value",
 			"SessionTokenTTLInHours", defaultSessionTokenTTL)
 		SessionTokenTTLInHours = defaultSessionTokenTTL // 3 months
@@ -53,7 +51,7 @@ func LoadECDSAKey() {
 	keyFromEnv := os.Getenv("ECDSA_PRIVATE_KEY")
 	if keyFromEnv != "" {
 		if err := setECDSAKeyFromEnv(keyFromEnv); err != nil {
-			log.Error(common.Error, err, "error loading ECDSA key from .env file")
+			log.Error("err", err, "error loading ECDSA key from .env file")
 		}
 		return
 	}
@@ -79,12 +77,12 @@ func setECDSAKeyFromEnv(keyFromEnv string) error {
 func generateRandomECDSAKey() {
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
-		log.Error(common.Error, err, "error generating ECDSA private key")
+		log.Error("err", err, "error generating ECDSA private key")
 		return
 	}
 	privateKeyBytes, err := x509.MarshalECPrivateKey(privateKey)
 	if err != nil {
-		log.Error(common.Error, err, "error marshaling ECDSA private key")
+		log.Error("err", err, "error marshaling ECDSA private key")
 		return
 	}
 	ECDSAKey = privateKey

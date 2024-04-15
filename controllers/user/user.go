@@ -61,7 +61,7 @@ func (u *Impl) GetEmailOTP(c *gin.Context) {
 	)
 	emailEscaped, _ := url.QueryUnescape(email)
 	log = log.With("email", emailEscaped)
-	log.Debug("getting email OTP")
+	log.Info("getting email OTP")
 
 	var user models.User
 	err := u.collections.Users.FindOne(c, bson.M{"email": strings.TrimSpace(emailEscaped)}).Decode(&user)
