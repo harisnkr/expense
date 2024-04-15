@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/harisnkr/expense/common"
 	"github.com/harisnkr/expense/dto"
 	"github.com/harisnkr/expense/models"
 )
@@ -18,7 +19,7 @@ import (
 func (u *Impl) Login(c *gin.Context) {
 	var (
 		req dto.UserLoginRequest
-		log = slog.With(c)
+		log = slog.With(common.RequestID, c.MustGet(common.RequestID))
 	)
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

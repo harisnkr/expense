@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/harisnkr/expense/common"
 	"github.com/harisnkr/expense/dto"
 	"github.com/harisnkr/expense/models"
 )
@@ -18,7 +19,7 @@ func (u *Impl) RegisterUser(c *gin.Context) {
 	var (
 		collection = u.collections.Users
 		req        *dto.RegisterUserRequest
-		log        = slog.With(c)
+		log        = slog.With(common.RequestID, c.MustGet(common.RequestID))
 	)
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

@@ -15,6 +15,7 @@ const (
 
 // SetDependencies sets dependencies based on environment
 func SetDependencies() {
+	log.Info("Setting dependencies first..")
 	config.InitEnvVar()
 	config.LoadECDSAKey()
 	initValidators()

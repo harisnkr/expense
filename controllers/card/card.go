@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
+	"github.com/harisnkr/expense/common"
 	"github.com/harisnkr/expense/data"
 	"github.com/harisnkr/expense/dto"
 	"github.com/harisnkr/expense/models"
@@ -38,7 +39,7 @@ func New(database *mongo.Client, collections *data.Collections) *Impl {
 func (a *Impl) AdminCreateCard(c *gin.Context) {
 	var (
 		card models.Card
-		log  = slog.With(c)
+		log  = slog.With(common.RequestID, c.MustGet(common.RequestID))
 	)
 	if err := c.ShouldBindJSON(&card); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -60,7 +61,7 @@ func (a *Impl) AdminCreateCard(c *gin.Context) {
 func (a *Impl) AdminDeleteCard(c *gin.Context) {
 	var (
 		req *dto.AdminDeleteCardRequest
-		log = slog.With(c)
+		log = slog.With(common.RequestID, c.MustGet(common.RequestID))
 	)
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -85,7 +86,7 @@ func (a *Impl) GetCard(c *gin.Context) {
 		reqName       = c.Param("name")
 		reqIssuerBank = c.Param("issuerBank")
 		reqNetwork    = c.Param("network")
-		log           = slog.With(c).
+		log           = slog.With(common.RequestID, c.MustGet(common.RequestID)).
 				With("func", "GetCard",
 				"reqName", reqName, "reqIssuerBank", reqIssuerBank, "reqNetwork", reqNetwork)
 	)
@@ -120,7 +121,7 @@ func (a *Impl) GetCard(c *gin.Context) {
 
 // GetAllCards gets all cards available
 func (a *Impl) GetAllCards(c *gin.Context) {
-	log := slog.With(c)
+	log := slog.With(common.RequestID, c.MustGet(common.RequestID))
 
 	cursor, err := a.collections.Cards.Find(c, bson.M{}) // FIXME
 	if err != nil {
@@ -149,7 +150,7 @@ func (a *Impl) GetAllCards(c *gin.Context) {
 
 func (a *Impl) AdminUpdateCard(c *gin.Context) {
 	var (
-		log = slog.With(c)
+		log = slog.With(common.RequestID, c.MustGet(common.RequestID))
 		req *dto.AdminUpdateCardRequest
 	)
 

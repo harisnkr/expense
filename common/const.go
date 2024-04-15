@@ -7,4 +7,9 @@ const (
 	Email    = "email"
 
 	Issuer = "www.moneyfly.io"
+
+	UserID    = "userID"
+	RequestID = "requestID"
+
+	Error = "err"
 )

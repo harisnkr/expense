@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 
+	"github.com/harisnkr/expense/common"
 	"github.com/harisnkr/expense/dto"
 	"github.com/harisnkr/expense/models"
 )
@@ -15,7 +16,7 @@ import (
 func (u *Impl) VerifyEmail(c *gin.Context) {
 	var (
 		collection = u.collections.Users
-		log        = slog.With(c)
+		log        = slog.With(common.RequestID, c.MustGet(common.RequestID))
 	)
 
 	var req *dto.UserEmailVerifyRequest
@@ -24,6 +25,7 @@ func (u *Impl) VerifyEmail(c *gin.Context) {
 		return
 	}
 
+	log.Debug("incoming")
 	// Fetch the user by email and verificationCode
 	var user models.User
 	err := collection.FindOne(c, bson.M{"email": req.Email, "verification_code": req.VerificationCode}).Decode(&user)

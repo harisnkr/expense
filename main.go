@@ -20,6 +20,7 @@ var (
 )
 
 func main() {
+	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 	r.Use(middleware.RequestID())
 
@@ -50,7 +51,7 @@ func registerUserRoutes(r *gin.Engine, userAPI user.API) {
 	}
 	adminRouter := r.Group("/admin")
 	{
-		adminRouter.GET("user/otp/:email", userAPI.GetEmailOTP)
+		adminRouter.GET("user/otp", userAPI.GetEmailOTP)
 	}
 }
 

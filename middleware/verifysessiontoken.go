@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 
+	"github.com/harisnkr/expense/common"
 	"github.com/harisnkr/expense/config"
 )
 
@@ -19,7 +20,7 @@ type Claims struct {
 // Auth is a middleware to verify session tokens issued
 func Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		log := slog.With(c)
+		log := slog.With(common.RequestID, c.MustGet(common.RequestID))
 		tokenString := c.GetHeader("Authorization")
 		if tokenString == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
@@ -40,7 +41,8 @@ func Auth() gin.HandlerFunc {
 		if claims, ok := token.Claims.(*Claims); ok && token.Valid {
 			c.Set("email", claims.Email)
 			c.Set("userID", claims.Subject)
-			log.Debug("User authenticated")
+			log.With(common.Email, claims.Email, common.UserID, claims.Subject).
+				Info("User authenticated")
 			c.Next()
 		} else {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})

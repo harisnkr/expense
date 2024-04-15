@@ -57,14 +57,17 @@ func (u *Impl) DeleteUser(c *gin.Context) {
 func (u *Impl) GetEmailOTP(c *gin.Context) {
 	var (
 		email = c.Query("email")
-		log   = slog.With(c)
+		log   = slog.With(common.RequestID, c.MustGet(common.RequestID))
 	)
-	var user models.User
 	emailEscaped, _ := url.QueryUnescape(email)
+	log = log.With("email", emailEscaped)
+	log.Debug("getting email OTP")
+
+	var user models.User
 	err := u.collections.Users.FindOne(c, bson.M{"email": strings.TrimSpace(emailEscaped)}).Decode(&user)
 	if err != nil {
 		log.Warn("OTP not found for given email")
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Unknown error"})
+		c.JSON(http.StatusNotFound, gin.H{"message": "Unknown error"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"otp": user.VerificationCode})
@@ -91,11 +94,11 @@ func populateUserEntry(newUser *models.User, req *dto.RegisterUserRequest, hashe
 
 func generateSessionJWT(c *gin.Context, user models.User) (time.Duration, string) {
 	var (
-		log      = slog.With(c).With("userID", user.ID, "email", user.Email)
-		tokenTTL = time.Now().Add(config.SessionTokenTTLInHours * time.Hour).Unix()
+		log      = slog.With(common.RequestID, c.MustGet(common.RequestID)).With("userID", user.ID, "email", user.Email)
+		tokenTTL = config.SessionTokenTTLInHours
 	)
 
-	exp := tokenTTL
+	exp := time.Now().Add(config.SessionTokenTTLInHours).Unix()
 	iat := time.Now().Unix()
 	nbf := time.Now().Unix()
 	iss := common.Issuer
