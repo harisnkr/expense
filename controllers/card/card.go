@@ -26,11 +26,13 @@ type API interface {
 	AddCardToUser(ctx *gin.Context)
 }
 
+// Impl holds dependencies for card.API
 type Impl struct {
 	database    *mongo.Client
 	collections *data.Collections
 }
 
+// New returns Impl struct with dependencies for using card.API
 func New(database *mongo.Client, collections *data.Collections) *Impl {
 	return &Impl{database, collections}
 }

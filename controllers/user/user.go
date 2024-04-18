@@ -120,7 +120,7 @@ func generateSessionJWT(c *gin.Context, user models.User) (time.Duration, string
 		log.Error("failed to generate jwt", err)
 		return time.Duration(0), tokenString
 	}
-	return time.Duration(tokenTTL), tokenString
+	return tokenTTL, tokenString
 }
 
 func sendVerificationEmail(c *gin.Context, email, token string) {
