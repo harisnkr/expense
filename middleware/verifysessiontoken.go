@@ -19,6 +19,14 @@ type Claims struct {
 
 // Auth is a middleware to verify session tokens issued
 func Auth() gin.HandlerFunc {
+	if common.GetMode() == common.Development {
+		// skip auth middleware if development environment
+		return func(c *gin.Context) {
+			slog.Warn("skipping auth middleware in development env")
+			c.Set(common.UserID, "")
+			c.Next()
+		}
+	}
 	return func(c *gin.Context) {
 		log := slog.With(common.RequestID, c.MustGet(common.RequestID))
 		tokenString := c.GetHeader("Authorization")

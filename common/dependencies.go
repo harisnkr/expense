@@ -8,9 +8,12 @@ import (
 )
 
 const (
-	development = "development"
-	staging     = "staging"
-	production  = "production"
+	// Development is the local/test environment
+	Development = "development"
+	// Staging is the UAT/pre-production environment
+	Staging = "staging"
+	// Production is the live environment
+	Production = "production"
 )
 
 // SetDependencies sets dependencies based on environment
@@ -29,11 +32,20 @@ func initLogger() {
 	}
 
 	switch env {
-	case development, staging:
+	case Development, Staging:
 		log.SetLogLoggerLevel(log.LevelDebug)
-	case production:
+	case Production:
 		log.SetLogLoggerLevel(log.LevelInfo)
 	default:
 		log.SetLogLoggerLevel(log.LevelDebug)
 	}
+}
+
+// GetMode gets the current environment mode that this service is running on
+func GetMode() string {
+	if env := os.Getenv("MODE"); env != "" {
+		return env
+	}
+	log.Warn("undefined env, defaulting to development")
+	return Development
 }

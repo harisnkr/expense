@@ -42,16 +42,17 @@ func main() {
 }
 
 func registerUserRoutes(r *gin.Engine, userAPI user.API) {
+	adminRouter := r.Group("/admin")
+	{
+		adminRouter.GET("user/otp", userAPI.GetEmailOTP)
+	}
+
 	userRouter := r.Group("/user")
 	{
 		userRouter.POST("/register", userAPI.RegisterUser)
 		userRouter.POST("/email/verify", userAPI.VerifyEmail)
 		userRouter.PATCH("/profile", middleware.Auth(), userAPI.UpdateUserProfile)
 		userRouter.POST("/login", userAPI.Login)
-	}
-	adminRouter := r.Group("/admin")
-	{
-		adminRouter.GET("user/otp", userAPI.GetEmailOTP)
 	}
 }
 
@@ -63,9 +64,8 @@ func registerCardRoutes(r *gin.Engine, cardAPI card.API) {
 		adminRouter.DELETE("/card", cardAPI.AdminDeleteCard)
 	}
 
-	r.GET("/cards", cardAPI.GetAllCards)
-	r.GET("/card/:name", cardAPI.GetCard)
-
+	r.GET("/cards", middleware.Auth(), cardAPI.GetAllCards)
+	r.GET("/card/:name", middleware.Auth(), cardAPI.GetCard)
 	r.POST("/user/card", middleware.Auth(), cardAPI.AddCardToUser)
 }
 

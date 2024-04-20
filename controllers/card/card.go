@@ -124,15 +124,14 @@ func (a *Impl) GetCard(c *gin.Context) {
 // GetAllCards gets all cards available
 func (a *Impl) GetAllCards(c *gin.Context) {
 	log := slog.With(common.RequestID, c.MustGet(common.RequestID))
-
-	cursor, err := a.collections.Cards.Find(c, bson.M{}) // FIXME
+	log.Debug("getting all cards")
+	cursor, err := a.collections.Cards.Find(c, bson.M{})
 	if err != nil {
 		log.Warn("find card error: ", err)
 		return
 	}
 	defer func(cursor *mongo.Cursor, ctx context.Context) {
-		err := cursor.Close(ctx)
-		if err != nil {
+		if err := cursor.Close(ctx); err != nil {
 			log.Error("cursor.Close: ", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
