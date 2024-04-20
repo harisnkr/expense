@@ -46,7 +46,7 @@ func registerUserRoutes(r *gin.Engine, userAPI user.API) {
 	{
 		userRouter.POST("/register", userAPI.RegisterUser)
 		userRouter.POST("/email/verify", userAPI.VerifyEmail)
-		userRouter.PATCH("/profile", middleware.Auth(), userAPI.UpdateMe)
+		userRouter.PATCH("/profile", middleware.Auth(), userAPI.UpdateUserProfile)
 		userRouter.POST("/login", userAPI.Login)
 	}
 	adminRouter := r.Group("/admin")

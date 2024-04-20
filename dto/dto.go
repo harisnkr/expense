@@ -16,7 +16,7 @@ type UserEmailVerifyRequest struct {
 
 // UserLoginRequest is the request body for POST /user/login
 type UserLoginRequest struct {
-	Email    string `binding:"required,email" json:"email"`
+	Email    string `binding:"required,email"    json:"email"`
 	Password string `binding:"required,password" json:"password"`
 }
 
@@ -29,4 +29,11 @@ type UserLoginResponse struct {
 // AddCardToUserRequest is the request body for POST /user/card
 type AddCardToUserRequest struct {
 	CardID string `json:"cardID"`
+}
+
+// UpdateMeRequest is the request body for PATCH /user/profile
+type UpdateMeRequest struct {
+	FirstName      *string `binding:"required,name"           json:"firstName"`
+	LastName       *string `binding:"required,name"           json:"lastName"`
+	ProfilePicture *string `binding:"required,profilePicture" json:"profilePicture"`
 }
