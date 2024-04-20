@@ -43,7 +43,7 @@ func New(database *mongo.Client, collections *data.Collections) *Impl {
 }
 
 // DeleteUser deletes the authenticated user's profile
-func (u *Impl) DeleteUser(c *gin.Context) {
+func (u *Impl) DeleteUser(_ *gin.Context) {
 	//TODO implement me
 	panic("implement me")
 }
