@@ -23,10 +23,10 @@ func SetDependencies() {
 }
 
 func initLogger() {
-	var (
-		env = os.Getenv("MODE")
-	)
-	log.Info("Initializing logger", "env detected", env)
+	env := os.Getenv("MODE")
+	if env != "" {
+		log.Info("Initializing logger", "env detected", env)
+	}
 
 	switch env {
 	case development, staging:

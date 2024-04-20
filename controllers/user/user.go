@@ -11,14 +11,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/harisnkr/expense/common"
 	"github.com/harisnkr/expense/config"
 	"github.com/harisnkr/expense/data"
 	"github.com/harisnkr/expense/dto"
 	"github.com/harisnkr/expense/models"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // API is an interface for operations related to models.User
@@ -166,6 +166,6 @@ func generateSessionJWT(c *gin.Context, user models.User) (time.Duration, string
 }
 
 func sendVerificationEmail(c *gin.Context, email, token string) {
-	// TODO: Implement email sending logic here
+	// TODO: Implement email sending logic here]
 	slog.InfoContext(c, fmt.Sprintf("Sending verification email to %s with OTP: %s", email, token))
 }

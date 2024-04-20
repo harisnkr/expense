@@ -15,6 +15,9 @@ import (
 )
 
 var (
+	tokenTTLEnvVar        = "TOKEN_TTL"
+	ecdsaPrivateKeyEnvVar = "ECDSA_PRIVATE_KEY"
+
 	// ECDSAKey is the loaded/generated private key for token generation
 	ECDSAKey *ecdsa.PrivateKey
 
@@ -33,23 +36,26 @@ func InitEnvVar() {
 }
 
 func setTokenTTLConfig() {
-	durationCfg, err := time.ParseDuration(os.Getenv("TOKEN_TTL"))
-	if err != nil {
-		log.Error("err", err, "error parsing TOKEN_TTL from .env")
+	if os.Getenv(tokenTTLEnvVar) == "" {
 		log.Info("Setting session token TTL to default value",
 			"SessionTokenTTLInHours", defaultSessionTokenTTL)
 		SessionTokenTTLInHours = defaultSessionTokenTTL // 3 months
 		return
 	}
-	// if valid TTL config found
+
+	durationCfg, err := time.ParseDuration(os.Getenv(tokenTTLEnvVar))
+	if err != nil {
+		log.Error("err", err, "error parsing TOKEN_TTL from .env")
+		return
+	}
+
 	SessionTokenTTLInHours = durationCfg * time.Hour
 	log.Info("Setting TOKEN_TTL in hours", "SessionTokenTTLInHours", SessionTokenTTLInHours)
 }
 
 // LoadECDSAKey loads ECDSA private key from .env, or generates a new one for dev
 func LoadECDSAKey() {
-	keyFromEnv := os.Getenv("ECDSA_PRIVATE_KEY")
-	if keyFromEnv != "" {
+	if keyFromEnv := os.Getenv(ecdsaPrivateKeyEnvVar); keyFromEnv != "" {
 		if err := setECDSAKeyFromEnv(keyFromEnv); err != nil {
 			log.Error("err", err, "error loading ECDSA key from .env file")
 		}
