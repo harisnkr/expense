@@ -11,6 +11,7 @@ import (
 	"github.com/harisnkr/expense/models"
 )
 
+// TODO: might not require this if we're storing the user's card on the app/using native cloud
 // AddCardToUser adds a card to user
 func (a *Impl) AddCardToUser(c *gin.Context) {
 	var (
