@@ -29,11 +29,16 @@ const (
 	Travel
 	Gas
 	Groceries
-	Utilities
+	Utilities // TODO: split into SP, mobile, etc.
 	Foreign
 	Contactless
 	PublicTransport
-	Online
+	Online // TODO: split into food deliveries, ride hailing, etc.
+	CharitableDonations
+	Education
+	Hospitals
+	Hotels
+	InsurancePremiums
 	// TODO: are there more?
 )
 
@@ -58,6 +63,16 @@ func (s SpendCategory) String() string {
 		return "PublicTransport"
 	case Online:
 		return "Online"
+	case CharitableDonations:
+		return "CharitableDonations"
+	case Education:
+		return "Education"
+	case Hospitals:
+		return "Hospitals"
+	case Hotels:
+		return "Hotels"
+	case InsurancePremiums:
+		return "InsurancePremiums"
 	}
 
 	return "Unknown"
