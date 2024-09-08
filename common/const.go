@@ -10,6 +10,4 @@ const (
 
 	UserID    = "userID"
 	RequestID = "requestID"
-
-	Error = "err"
 )
